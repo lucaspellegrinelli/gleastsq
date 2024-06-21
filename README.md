@@ -3,11 +3,15 @@
 [![Package Version](https://img.shields.io/hexpm/v/gleastsq)](https://hex.pm/packages/gleastsq)
 [![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/gleastsq/)
 
+A basic least squares fitting library for Gleam. This library uses the [Nx](https://hexdocs.pm/nx/Nx.html) library from Elixir to perform matrix operations.
+
 ```sh
 gleam add gleastsq
 ```
 
 ```gleam
+import gleam/option.{None}
+import gleam/list
 import gleam/io
 import gleastsq
 
@@ -38,10 +42,3 @@ pub fn main() {
 ```
 
 Further documentation can be found at <https://hexdocs.pm/gleastsq>.
-
-## Development
-
-```sh
-gleam test  # Run the tests
-gleam shell # Run an Erlang shell
-```

@@ -110,9 +110,6 @@ fn do_least_squares(
 /// ## Examples
 ///
 /// ```gleam
-/// import gleam/io
-/// import gleastsq
-/// 
 /// fn parabola(x: Float, params: List(Float)) -> Float {
 ///   let assert [a, b, c] = params
 ///   a *. x *. x +. b *. x +. c
