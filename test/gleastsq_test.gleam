@@ -20,6 +20,18 @@ fn parabola(x: Float, params: List(Float)) -> Float {
   a *. x *. x +. b *. x +. c
 }
 
+fn gaussian(x: Float, params: List(Float)) -> Float {
+  let assert [mu, sigma] = params
+  let pi = 3.141592653589793
+  let e = 2.718281828459045
+  let sqrt2 = result.unwrap(float.square_root(2.0 *. pi), 0.0)
+  let first = 1.0 /. { sigma *. sqrt2 }
+  let second_exp =
+    -0.5 *. { result.unwrap(float.power({ x -. mu } /. sigma, 2.0), 0.0) }
+  let second = result.unwrap(float.power(e, second_exp), 0.0)
+  first *. second
+}
+
 fn call_leastsq(
   x: List(Float),
   y: List(Float),
@@ -73,6 +85,14 @@ pub fn perfect_parabola_fit_with_slope_test() {
   let initial = [1.0, 1.0, 0.0]
   let assert Ok(result) = call_leastsq(x, y, parabola, initial)
   is_close(result, [1.0, 1.0, 0.0]) |> should.be_true
+}
+
+pub fn perfect_gaussian_fit_test() {
+  let x = list.range(-5, 6) |> list.map(int.to_float)
+  let y = list.map(x, gaussian(_, [0.1, 10.0]))
+  let initial = [1.0, 1.0]
+  let assert Ok(result) = call_leastsq(x, y, gaussian, initial)
+  is_close(result, [0.1, 10.0]) |> should.be_true
 }
 
 pub fn main() {
