@@ -40,7 +40,7 @@ pub fn to_list_2d(a: NxTensor) -> List(List(Float))
 pub fn to_number(a: NxTensor) -> Float
 
 @external(erlang, "Elixir.Nx.LinAlg", "norm")
-pub fn norm(a: NxTensor) -> Float
+pub fn norm(a: NxTensor) -> NxTensor
 
 @external(erlang, "Elixir.Nx.LinAlg", "solve")
 pub fn solve(a: NxTensor, b: NxTensor) -> NxTensor

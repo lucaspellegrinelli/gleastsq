@@ -3,9 +3,9 @@ import gleam/int
 import gleam/list
 import gleam/option.{None}
 import gleam/result
+import gleastsq
 import gleeunit
 import gleeunit/should
-import gleastsq
 
 const e = 2.718281828459045
 
@@ -37,16 +37,16 @@ pub fn perfect_power_of_2_fit_test() {
   let y = list.map(x, fn(x) { result.unwrap(float.power(2.0, x), 0.0) })
 
   let initial_guess = [1.0, 1.0, 1.0]
-  let result =
+  let assert Ok(result) =
     gleastsq.least_squares(
       x,
       y,
       exponential,
       initial_guess,
-      None,
-      None,
-      None,
-      None,
+      max_iterations: None,
+      epsilon: None,
+      tolerance: None,
+      lambda_reg: None,
     )
 
   is_close(result, [1.0, 0.6931, 0.0]) |> should.be_true
@@ -57,16 +57,16 @@ pub fn perfect_power_of_3_fit_test() {
   let y = list.map(x, fn(x) { result.unwrap(float.power(3.0, x), 0.0) })
 
   let initial_guess = [1.0, 1.0, 1.0]
-  let result =
+  let assert Ok(result) =
     gleastsq.least_squares(
       x,
       y,
       exponential,
       initial_guess,
-      None,
-      None,
-      None,
-      None,
+      max_iterations: None,
+      epsilon: None,
+      tolerance: None,
+      lambda_reg: None,
     )
 
   is_close(result, [1.0, 1.0986, 0.0]) |> should.be_true
@@ -77,8 +77,17 @@ pub fn perfect_parabola_fit_test() {
   let y = list.map(x, fn(x) { x *. x })
 
   let initial_guess = [1.0, 1.0, 1.0]
-  let result =
-    gleastsq.least_squares(x, y, parabola, initial_guess, None, None, None, None)
+  let assert Ok(result) =
+    gleastsq.least_squares(
+      x,
+      y,
+      parabola,
+      initial_guess,
+      max_iterations: None,
+      epsilon: None,
+      tolerance: None,
+      lambda_reg: None,
+    )
 
   is_close(result, [1.0, 0.0, 0.0]) |> should.be_true
 }

@@ -1,5 +1,10 @@
 import gleam/option.{type Option, None, Some}
+import gleam/result
 import nx.{type NxTensor}
+
+pub opaque type FitErrors {
+  NonConverged
+}
 
 fn convert_func_params(
   func: fn(Float, List(Float)) -> Float,
@@ -55,14 +60,14 @@ fn do_least_squares(
   y: NxTensor,
   func: fn(NxTensor, NxTensor) -> Float,
   params: NxTensor,
-  iterations: Int,
+  max_iterations: Int,
   epsilon: Float,
   tolerance: Float,
   lambda_reg: Float,
-) {
+) -> Result(NxTensor, FitErrors) {
   let m = nx.shape(params).0
-  case iterations {
-    0 -> params
+  case max_iterations {
+    0 -> Error(NonConverged)
     iterations -> {
       let r = x |> nx.map(func(_, params)) |> nx.subtract(y, _)
       let j = jacobian(x, func, params, epsilon)
@@ -72,8 +77,8 @@ fn do_least_squares(
       let g = nx.dot(jt, r)
       let delta = nx.solve(h, g)
 
-      case nx.norm(delta) {
-        x if x <. tolerance -> params
+      case nx.to_number(nx.norm(delta)) {
+        x if x <. tolerance -> Ok(params)
         _ ->
           do_least_squares(
             x,
@@ -95,11 +100,11 @@ pub fn least_squares(
   y: List(Float),
   func: fn(Float, List(Float)) -> Float,
   initial_params: List(Float),
-  iterations: Option(Int),
-  epsilon: Option(Float),
-  tolerance: Option(Float),
-  lambda_reg: Option(Float),
-) {
+  max_iterations iterations: Option(Int),
+  epsilon epsilon: Option(Float),
+  tolerance tolerance: Option(Float),
+  lambda_reg lambda_reg: Option(Float),
+) -> Result(List(Float), FitErrors) {
   let p = nx.tensor(initial_params)
   let x = nx.tensor(x)
   let y = nx.tensor(y)
@@ -125,6 +130,6 @@ pub fn least_squares(
     None -> 0.0001
   }
 
-  do_least_squares(x, y, func, p, iter, eps, tol, reg)
-  |> nx.to_list_1d
+  use fitted <- result.try(do_least_squares(x, y, func, p, iter, eps, tol, reg))
+  Ok(fitted |> nx.to_list_1d)
 }

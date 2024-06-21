@@ -19,11 +19,21 @@ fn parabola(x: Float, params: List(Float)) -> Float {
 pub fn main() {
   let x = [0.0, 1.0, 2.0, 3.0, 4.0, 5.0]
   let y = list.map(x, fn(x) { x *. x })
-
   let initial_guess = [1.0, 1.0, 1.0]
 
-  gleastsq.least_squares(x, y, parabola, initial_guess, None, None, None, None)
-  |> io.debug // [1.0, 0.0, 0.0] (within numerical error)
+  let assert Ok(result) =
+    gleastsq.least_squares(
+      x,
+      y,
+      parabola,
+      initial_guess,
+      max_iterations: None,
+      epsilon: None,
+      tolerance: None,
+      lambda_reg: None,
+    )
+
+  io.debug(result) // [1.0, 0.0, 0.0] (within numerical error)
 }
 ```
 
