@@ -95,6 +95,49 @@ fn do_least_squares(
   }
 }
 
+/// Compute the least squares fit of a function to a set of data points.
+///
+/// ## Parameters:
+/// - `x`: The X axis of the data points as a list of floats.
+/// - `y`: The Y axis of the data points as a list of floats.
+/// - `func`: The function to fit to the data points. The function should take a float and a list of floats (the function coefficients) as arguments and return a float.
+/// - `initial_params`: The initial guess for the function coefficients.
+/// - `max_iterations`: The maximum number of iterations to perform. Default is 100.
+/// - `epsilon`: The epsilon value for the numerical derivative. Default is 0.0001.
+/// - `tolerance`: The tolerance for the convergence criterion. Default is 0.0001.
+/// - `lambda_reg`: The regularization parameter. Default is 0.0001.
+///
+/// ## Examples
+///
+/// ```gleam
+/// import gleam/io
+/// import gleastsq
+/// 
+/// fn parabola(x: Float, params: List(Float)) -> Float {
+///   let assert [a, b, c] = params
+///   a *. x *. x +. b *. x +. c
+/// }
+/// 
+/// pub fn main() {
+///   let x = [0.0, 1.0, 2.0, 3.0, 4.0, 5.0]
+///   let y = list.map(x, fn(x) { x *. x })
+///   let initial_guess = [1.0, 1.0, 1.0]
+/// 
+///   let assert Ok(result) =
+///     gleastsq.least_squares(
+///       x,
+///       y,
+///       parabola,
+///       initial_guess,
+///       max_iterations: None,
+///       epsilon: None,
+///       tolerance: None,
+///       lambda_reg: None,
+///     )
+/// 
+///   io.debug(result) // [1.0, 0.0, 0.0] (within numerical error)
+/// }
+/// ```
 pub fn least_squares(
   x: List(Float),
   y: List(Float),
