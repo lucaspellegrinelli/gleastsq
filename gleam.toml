@@ -1,0 +1,14 @@
+name = "gleastsq"
+version = "0.1.0"
+target = "erlang"
+
+licences = ["Apache-2.0"]
+description = "A basic least squares fitting library for Gleam."
+repository = { type = "github", user = "lucaspellegrinelli", repo = "gleastsq" }
+
+[dependencies]
+gleam_stdlib = ">= 0.34.0 and < 2.0.0"
+nx = ">= 0.7.2 and < 1.0.0"
+
+[dev-dependencies]
+gleeunit = ">= 1.0.0 and < 2.0.0"
