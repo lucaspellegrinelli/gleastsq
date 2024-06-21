@@ -1,6 +1,6 @@
 import gleam/option.{type Option, None, Some}
 import gleam/result
-import nx.{type NxTensor}
+import gleastsq/nx.{type NxTensor}
 
 pub opaque type FitErrors {
   NonConverged
