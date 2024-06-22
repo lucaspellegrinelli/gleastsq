@@ -1,34 +1,13 @@
 import gleam/float
-import gleam/function
 import gleam/int
 import gleam/list
-import gleam/option.{None}
 import gleam_community/maths/metrics.{mean}
-import gleastsq
 import gleastsq/errors.{type FitErrors}
 import utils/sampling.{sample_around}
 
-pub type Optimizer =
+type Optimizer =
   fn(List(Float), List(Float), fn(Float, List(Float)) -> Float, List(Float)) ->
     Result(List(Float), FitErrors)
-
-pub fn leastsq(
-  x: List(Float),
-  y: List(Float),
-  f: fn(Float, List(Float)) -> Float,
-  p: List(Float),
-) {
-  gleastsq.least_squares(x, y, f, p, None, None, None, None)
-}
-
-pub fn lm(
-  x: List(Float),
-  y: List(Float),
-  f: fn(Float, List(Float)) -> Float,
-  p: List(Float),
-) {
-  gleastsq.levenberg_marquardt(x, y, f, p, None, None, None, None, None, None)
-}
 
 pub fn generate_x_axis(from: Int, to: Int, n: Int) -> List(Float) {
   let n = int.to_float(n - 1)
@@ -72,10 +51,4 @@ pub fn are_fits_equivalent(
     |> mean
 
   diff <. tol
-}
-
-pub fn is_close(a: List(Float), b: List(Float), t: Float) -> Bool {
-  list.zip(a, b)
-  |> list.map(fn(p) { float.loosely_equals(p.0, p.1, tolerating: t) })
-  |> list.all(function.identity)
 }

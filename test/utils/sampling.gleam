@@ -2,7 +2,7 @@ import gleam/list
 import gleam_community/maths/metrics.{standard_deviation}
 import prng/random
 import prng/seed
-import utils/math_utils.{gaussian}
+import utils/curves.{gaussian}
 
 pub fn sample_around(
   x: List(Float),
