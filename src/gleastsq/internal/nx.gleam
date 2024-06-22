@@ -21,6 +21,12 @@ pub fn multiply(a: NxTensor, b: Float) -> NxTensor
 @external(erlang, "Elixir.Nx", "add")
 pub fn add(a: NxTensor, b: NxTensor) -> NxTensor
 
+@external(erlang, "Elixir.Nx", "sum")
+pub fn sum(a: NxTensor) -> NxTensor
+
+@external(erlang, "Elixir.Nx", "pow")
+pub fn pow(a: NxTensor, b: Float) -> NxTensor
+
 @external(erlang, "Elixir.Nx", "subtract")
 pub fn subtract(a: NxTensor, b: NxTensor) -> NxTensor
 

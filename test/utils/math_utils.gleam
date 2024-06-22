@@ -23,3 +23,8 @@ pub fn gaussian(x: Float, params: List(Float)) -> Float {
   let assert Ok(second) = float.power(e, -0.5 *. second_exp)
   first *. second
 }
+
+pub fn double_gaussian(x: Float, params: List(Float)) -> Float {
+  let assert [mul1, mu1, sigma1, mul2, mu2, sigma2] = params
+  mul1 *. gaussian(x, [mu1, sigma1]) +. mul2 *. gaussian(x, [mu2, sigma2])
+}
