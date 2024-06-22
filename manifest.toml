@@ -4,6 +4,7 @@
 packages = [
   { name = "complex", version = "0.5.0", build_tools = ["mix"], requirements = [], otp_app = "complex", source = "hex", outer_checksum = "2683BD3C184466CFB94FAD74CBFDDFAA94B860E27AD4CA1BFFE3BFF169D91EF1" },
   { name = "gleam_bitwise", version = "1.3.1", build_tools = ["gleam"], requirements = [], otp_app = "gleam_bitwise", source = "hex", outer_checksum = "B36E1D3188D7F594C7FD4F43D0D2CE17561DE896202017548578B16FE1FE9EFC" },
+  { name = "gleam_community_maths", version = "1.1.1", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "gleam_community_maths", source = "hex", outer_checksum = "6C4ED7BC7E7DF6977719B5F2CFE717EE8280D1CF6EA81D55FD9953758C7FD14E" },
   { name = "gleam_stdlib", version = "0.38.0", build_tools = ["gleam"], requirements = [], otp_app = "gleam_stdlib", source = "hex", outer_checksum = "663CF11861179AF415A625307447775C09404E752FF99A24E2057C835319F1BE" },
   { name = "gleeunit", version = "1.2.0", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "gleeunit", source = "hex", outer_checksum = "F7A7228925D3EE7D0813C922E062BFD6D7E9310F0BEE585D3A42F3307E3CFD13" },
   { name = "nx", version = "0.7.2", build_tools = ["mix"], requirements = ["complex", "telemetry"], otp_app = "nx", source = "hex", outer_checksum = "E2C0680066EEC5AF8B8EF00C99E9BF40A0D08D8B2BBBA77F59F801EC54A3F90E" },
@@ -12,7 +13,8 @@ packages = [
 ]
 
 [requirements]
+gleam_community_maths = { version = ">= 1.1.1 and < 2.0.0"}
 gleam_stdlib = { version = ">= 0.34.0 and < 2.0.0" }
 gleeunit = { version = ">= 1.0.0 and < 2.0.0" }
 nx = { version = ">= 0.7.2 and < 1.0.0" }
-prng = { version = ">= 3.0.3 and < 4.0.0"}
+prng = { version = ">= 3.0.3 and < 4.0.0" }

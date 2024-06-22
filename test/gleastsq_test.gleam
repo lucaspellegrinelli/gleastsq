@@ -1,28 +1,12 @@
 import gleam/float
-import gleam/function
 import gleam/int
 import gleam/list
-import gleam/option.{None}
 import gleam/result
-import gleastsq
 import gleeunit
 import gleeunit/should
-import math_utils.{exponential, gaussian, parabola, sample_around}
-
-fn call_leastsq(
-  x: List(Float),
-  y: List(Float),
-  f: fn(Float, List(Float)) -> Float,
-  p: List(Float),
-) {
-  gleastsq.least_squares(x, y, f, p, None, None, None, None)
-}
-
-fn is_close(a: List(Float), b: List(Float), t: Float) -> Bool {
-  list.zip(a, b)
-  |> list.map(fn(p) { float.loosely_equals(p.0, p.1, tolerating: t) })
-  |> list.all(function.identity)
-}
+import math_utils.{exponential, gaussian, parabola}
+import sampling.{sample_around}
+import test_utils.{call_leastsq, is_close}
 
 pub fn perfect_power_of_2_fit_test() {
   let x = list.range(0, 6) |> list.map(int.to_float)
@@ -72,12 +56,26 @@ pub fn perfect_gaussian_fit_test() {
   is_close(result, [0.1, 10.0], 0.001) |> should.be_true
 }
 
-pub fn imperfect_gaussian_fit_test() {
-  let x = list.range(-50, 51) |> list.map(int.to_float)
-  let y = sample_around(x, gaussian, [0.1, 10.0])
-  let initial = [1.0, 1.0]
-  let assert Ok(result) = call_leastsq(x, y, gaussian, initial)
-  is_close(result, [0.1, 10.0], 0.1) |> should.be_true
+pub fn noisy_gaussian_fit_test() {
+  let params = [0.0, 3.0]
+  let x =
+    list.range(-100, 101)
+    |> list.map(int.to_float)
+    |> list.map(fn(x) { x /. 10.0 })
+  let y = sample_around(x, gaussian, params)
+  let assert Ok(result) = call_leastsq(x, y, gaussian, [1.0, 1.0])
+  is_close(result, params, 0.1) |> should.be_true
+}
+
+pub fn noisy_exponential_fit_test() {
+  let params = [0.1, 1.0, 0.0]
+  let x =
+    list.range(0, 51)
+    |> list.map(int.to_float)
+    |> list.map(fn(x) { x /. 10.0 })
+  let y = sample_around(x, exponential, params)
+  let assert Ok(result) = call_leastsq(x, y, exponential, [1.0, 1.0, 1.0])
+  is_close(result, params, 0.1) |> should.be_true
 }
 
 pub fn main() {

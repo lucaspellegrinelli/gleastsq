@@ -13,3 +13,4 @@ nx = ">= 0.7.2 and < 1.0.0"
 [dev-dependencies]
 gleeunit = ">= 1.0.0 and < 2.0.0"
 prng = ">= 3.0.3 and < 4.0.0"
+gleam_community_maths = ">= 1.1.1 and < 2.0.0"
