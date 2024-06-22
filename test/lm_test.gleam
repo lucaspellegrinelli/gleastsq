@@ -43,7 +43,7 @@ pub fn noisy_exponential_fit_test() {
   let x = generate_x_axis(0, 5, 100)
   let params = [0.1, 1.0, 0.0]
   let result = fit_to_curve(x, exponential, params, lm, noisy: True)
-  are_fits_equivalent(x, exponential, params, result, tol: 0.5)
+  are_fits_equivalent(x, exponential, params, result, tol: 0.25)
   |> should.be_true
 }
 
@@ -58,14 +58,14 @@ pub fn noisy_gaussian_fit_test() {
   let x = generate_x_axis(-5, 5, 100)
   let params = [0.1, 10.0]
   let result = fit_to_curve(x, gaussian, params, lm, noisy: True)
-  are_fits_equivalent(x, gaussian, params, result, tol: 0.5) |> should.be_true
+  are_fits_equivalent(x, gaussian, params, result, tol: 0.1) |> should.be_true
 }
 
 pub fn noisy_double_gaussian_fit_test() {
   let x = generate_x_axis(-5, 5, 100)
   let params = [1.2, 0.3, 0.5, 2.5, 2.0, 1.0]
   let result = fit_to_curve(x, double_gaussian, params, lm, noisy: True)
-  are_fits_equivalent(x, double_gaussian, params, result, tol: 0.5)
+  are_fits_equivalent(x, double_gaussian, params, result, tol: 0.1)
   |> should.be_true
 }
 

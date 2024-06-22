@@ -1,6 +1,6 @@
 import gleam/option.{type Option}
 import gleastsq/least_squares as lsqr
-import gleastsq/levemberg_marquardt as lm
+import gleastsq/levenberg_marquardt as lm
 
 /// The `levenberg_marquardt` function performs the Levenberg-Marquardt optimization algorithm.
 /// It is used to solve non-linear least squares problems. This function takes as input the data points,

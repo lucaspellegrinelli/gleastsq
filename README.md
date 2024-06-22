@@ -5,19 +5,21 @@
 
 A curve fitting library for Gleam. This library uses the [Nx](https://hexdocs.pm/nx/Nx.html) library from Elixir to perform matrix operations.
 
-## Levemberg-Marquardt vs Leasts Squares for curve fitting
+## Levenberg-Marquardt vs Leasts Squares for curve fitting
 
-The library provides two functions for curve fitting: `least_squares` and `levemberg_marquardt`.
+The library provides two functions for curve fitting: `least_squares` and `levenberg_marquardt`.
 
 ### Least Squares
 
-The 'least_squares' function is generally simpler and faster but may not converge for some functions, specially for non-linear functions.
+The `least_squares` function is generally simpler and faster but may not converge for some functions, specially for non-linear functions.
 It is generally recommended for simpler models where the relationship between the parameters and the function is linear.
 
 ### Levenberg-Marquardt
 
-The 'levemberg_marquardt' function is more robust but may be slower due to the extra calculations.
+The `levenberg_marquardt` function is more robust but may be slower due to the extra calculations.
 It is generally recommended for non-linear functions where the relationship between the parameters and the function is non-linear.
+
+## Installation
 
 ```sh
 gleam add gleastsq
