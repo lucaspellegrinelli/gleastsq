@@ -1,11 +1,13 @@
 import gleam/list
 import gleam/option.{type Option, None, Some}
+import gleam/otp/task
 import gleam/result
 import gleastsq/internal/nx.{type NxTensor}
 
 pub opaque type FitErrors {
   NonConverged
   WrongParameters(String)
+  JacobianTaskError
 }
 
 fn convert_func_params(
@@ -23,38 +25,34 @@ fn jacobian(
   epsilon: Float,
 ) {
   let #(n) = nx.shape(params)
-  let #(m) = nx.shape(x)
-  let jac = nx.broadcast(0.0, #(m, n))
-  compute_jacobian(x, func, params, jac, epsilon, n, 0)
+  let jac_result =
+    list.range(0, n - 1)
+    |> list.map(fn(i) {
+      task.async(fn() { compute_jacobian_col(x, func, params, epsilon, n, i) })
+    })
+    |> list.map(task.try_await_forever(_))
+    |> result.all
+
+  case jac_result {
+    Ok(jac_cols) -> Ok(nx.concatenate(jac_cols, 1))
+    Error(_) -> Error(JacobianTaskError)
+  }
 }
 
-fn compute_jacobian(
+fn compute_jacobian_col(
   x: NxTensor,
   func: fn(NxTensor, NxTensor) -> Float,
   params: NxTensor,
-  jac: NxTensor,
   epsilon: Float,
   n: Int,
   i: Int,
-) {
-  case i {
-    i if i >= n -> jac
-    _ -> {
-      let mask =
-        nx.indexed_put(nx.broadcast(0.0, #(n)), nx.tensor([i]), epsilon)
-      let up_params = nx.add(params, mask)
-      let down_params = nx.subtract(params, mask)
-
-      let up_f = nx.map(x, func(_, up_params))
-      let down_f = nx.map(x, func(_, down_params))
-      let deriv =
-        nx.new_axis(nx.divide(nx.subtract(up_f, down_f), 2.0 *. epsilon), 1)
-
-      let updated_jac = nx.put_slice(jac, [0, i], deriv)
-
-      compute_jacobian(x, func, params, updated_jac, epsilon, n, i + 1)
-    }
-  }
+) -> NxTensor {
+  let mask = nx.indexed_put(nx.broadcast(0.0, #(n)), nx.tensor([i]), epsilon)
+  let up_params = nx.add(params, mask)
+  let down_params = nx.subtract(params, mask)
+  let up_f = nx.map(x, func(_, up_params))
+  let down_f = nx.map(x, func(_, down_params))
+  nx.new_axis(nx.divide(nx.subtract(up_f, down_f), 2.0 *. epsilon), 1)
 }
 
 fn do_least_squares(
@@ -72,7 +70,7 @@ fn do_least_squares(
     0 -> Error(NonConverged)
     iterations -> {
       let r = x |> nx.map(func(_, params)) |> nx.subtract(y, _)
-      let j = jacobian(x, func, params, epsilon)
+      use j <- result.try(jacobian(x, func, params, epsilon))
       let jt = nx.transpose(j)
       let lambda_eye = nx.eye(m) |> nx.multiply(lambda_reg)
       let h = nx.add(nx.dot(jt, j), lambda_eye)

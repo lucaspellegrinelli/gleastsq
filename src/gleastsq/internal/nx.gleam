@@ -59,3 +59,6 @@ pub fn divide(a: NxTensor, b: Float) -> NxTensor
 
 @external(erlang, "Elixir.Nx", "put_slice")
 pub fn put_slice(a: NxTensor, indices: List(Int), value: NxTensor) -> NxTensor
+
+@external(erlang, "Elixir.NxBindings", "concatenate")
+pub fn concatenate(a: List(NxTensor), axis axis: Int) -> NxTensor
