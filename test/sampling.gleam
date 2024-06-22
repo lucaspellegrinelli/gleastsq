@@ -17,8 +17,10 @@ pub fn sample_around(
     use sign <- random.then(random.choose(-1.0, 1.0))
     random.constant(sign *. gaussian(x, [0.0, 1.0]) *. ampl)
   }
-  list.map(y, fn(y) {
-    let noise = random.sample(noise_gen, seed)
-    y +. noise
-  })
+
+  noise_gen
+  |> random.fixed_size_list(list.length(x))
+  |> random.sample(seed)
+  |> list.zip(y)
+  |> list.map(fn(a) { a.0 +. a.1 })
 }

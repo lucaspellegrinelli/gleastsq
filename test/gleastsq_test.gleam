@@ -70,11 +70,22 @@ pub fn noisy_gaussian_fit_test() {
 pub fn noisy_exponential_fit_test() {
   let params = [0.1, 1.0, 0.0]
   let x =
-    list.range(0, 51)
+    list.range(0, 101)
     |> list.map(int.to_float)
-    |> list.map(fn(x) { x /. 10.0 })
+    |> list.map(fn(x) { x /. 20.0 })
   let y = sample_around(x, exponential, params)
   let assert Ok(result) = call_leastsq(x, y, exponential, [1.0, 1.0, 1.0])
+  is_close(result, params, 0.1) |> should.be_true
+}
+
+pub fn noisy_parabola_fit_test() {
+  let params = [-1.4, 0.1, 0.4]
+  let x =
+    list.range(-120, 121)
+    |> list.map(int.to_float)
+    |> list.map(fn(x) { x /. 20.0 })
+  let y = sample_around(x, parabola, params)
+  let assert Ok(result) = call_leastsq(x, y, parabola, [1.0, 1.0, 1.0])
   is_close(result, params, 0.1) |> should.be_true
 }
 
