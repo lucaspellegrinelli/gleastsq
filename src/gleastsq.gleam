@@ -1,9 +1,11 @@
+import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/result
 import gleastsq/internal/nx.{type NxTensor}
 
 pub opaque type FitErrors {
   NonConverged
+  WrongParameters(String)
 }
 
 fn convert_func_params(
@@ -95,6 +97,18 @@ fn do_least_squares(
   }
 }
 
+fn compare_list_sizes(
+  a: List(a),
+  b: List(a),
+  msg: String,
+  callback: fn() -> Result(b, FitErrors),
+) {
+  case list.length(a) == list.length(b) {
+    True -> callback()
+    False -> Error(WrongParameters(msg))
+  }
+}
+
 /// Compute the least squares fit of a function to a set of data points.
 ///
 /// ## Parameters:
@@ -145,6 +159,8 @@ pub fn least_squares(
   tolerance tolerance: Option(Float),
   lambda_reg lambda_reg: Option(Float),
 ) -> Result(List(Float), FitErrors) {
+  use <- compare_list_sizes(x, y, "x and y must have the same length")
+
   let p = nx.tensor(initial_params)
   let x = nx.tensor(x)
   let y = nx.tensor(y)
@@ -160,12 +176,12 @@ pub fn least_squares(
     None -> 0.0001
   }
 
-  let reg = case lambda_reg {
+  let tol = case tolerance {
     Some(x) -> x
     None -> 0.0001
   }
 
-  let tol = case tolerance {
+  let reg = case lambda_reg {
     Some(x) -> x
     None -> 0.0001
   }
