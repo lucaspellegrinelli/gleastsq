@@ -3,6 +3,10 @@ import gleam/dynamic.{type Dynamic}
 pub type NxTensor =
   Dynamic
 
+pub type NxOpts {
+  Axis(Int)
+}
+
 @external(erlang, "Elixir.Nx", "tensor")
 pub fn tensor(a: List(a)) -> NxTensor
 
@@ -39,9 +43,6 @@ pub fn shape(a: NxTensor) -> #(Int)
 @external(erlang, "Elixir.Nx", "to_list")
 pub fn to_list_1d(a: NxTensor) -> List(Float)
 
-@external(erlang, "Elixir.Nx", "to_list")
-pub fn to_list_2d(a: NxTensor) -> List(List(Float))
-
 @external(erlang, "Elixir.Nx", "to_number")
 pub fn to_number(a: NxTensor) -> Float
 
@@ -66,5 +67,5 @@ pub fn divide(a: NxTensor, b: Float) -> NxTensor
 @external(erlang, "Elixir.Nx", "put_slice")
 pub fn put_slice(a: NxTensor, indices: List(Int), value: NxTensor) -> NxTensor
 
-@external(erlang, "Elixir.NxBindings", "concatenate")
-pub fn concatenate(a: List(NxTensor), axis axis: Int) -> NxTensor
+@external(erlang, "Elixir.Nx", "concatenate")
+pub fn concatenate(a: List(NxTensor), opts opts: List(NxOpts)) -> NxTensor

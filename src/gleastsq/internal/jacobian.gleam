@@ -1,7 +1,7 @@
 import gleam/list
 import gleam/otp/task
 import gleam/result
-import gleastsq/internal/nx.{type NxTensor}
+import gleastsq/internal/nx.{type NxTensor, Axis}
 
 pub opaque type JacobianError {
   JacobianTaskError
@@ -23,7 +23,7 @@ pub fn jacobian(
     |> result.all
 
   case jac_result {
-    Ok(jac_cols) -> Ok(nx.concatenate(jac_cols, 1))
+    Ok(jac_cols) -> Ok(nx.concatenate(jac_cols, opts: [Axis(1)]))
     Error(_) -> Error(JacobianTaskError)
   }
 }
