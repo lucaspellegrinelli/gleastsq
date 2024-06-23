@@ -6,7 +6,7 @@
 A least squares curve fitting library for Gleam. This library uses the [Nx](https://hexdocs.pm/nx/Nx.html)
 library from Elixir under the hood to perform matrix operations.
 
-## Levenberg-Marquardt vs Leasts Squares for curve fitting
+## Which method should I use?
 
 The library provides three functions for curve fitting: `least_squares`, `gauss_newton` and `levenberg_marquardt`.
 
