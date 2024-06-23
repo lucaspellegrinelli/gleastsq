@@ -3,21 +3,28 @@
 [![Package Version](https://img.shields.io/hexpm/v/gleastsq)](https://hex.pm/packages/gleastsq)
 [![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/gleastsq/)
 
-A curve fitting library for Gleam. This library uses the [Nx](https://hexdocs.pm/nx/Nx.html) library from Elixir to perform matrix operations.
+A least squares curve fitting library for Gleam. This library uses the [Nx](https://hexdocs.pm/nx/Nx.html)
+library from Elixir under the hood to perform matrix operations.
 
 ## Levenberg-Marquardt vs Leasts Squares for curve fitting
 
-The library provides two functions for curve fitting: `least_squares` and `levenberg_marquardt`.
+The library provides three functions for curve fitting: `least_squares`, `gauss_newton` and `levenberg_marquardt`.
 
 ### Least Squares
 
-The `least_squares` function is generally simpler and faster but may not converge for some functions, specially for non-linear functions.
-It is generally recommended for simpler models where the relationship between the parameters and the function is linear.
+The `least_squares` function is just an alias for the `levenberg_marquardt` function.
+
+### Gauss-Newton
+
+The `gauss_newton` function is best for least squares problems with good initial guesses and small residuals.
+It is less computationally intensive and thus can be faster than the Levenberg-Marquardt method but can be unstable
+with poor initial guesses or large residuals.
 
 ### Levenberg-Marquardt
 
-The `levenberg_marquardt` function is more robust but may be slower due to the extra calculations.
-It is generally recommended for non-linear functions where the relationship between the parameters and the function is non-linear.
+The `levenberg_marquardt` function is robust for nonlinear least squares problems, handling large residuals and poor
+initial guesses effectively. It is more computationally intensive but provides reliable convergence for a wider range
+of problems, especially in challenging or ill-conditioned cases.
 
 ## Installation
 

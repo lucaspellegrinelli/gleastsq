@@ -8,7 +8,7 @@ import gleastsq/internal/helpers/utils.{compare_list_sizes, convert_func_params}
 import gleastsq/internal/jacobian.{jacobian}
 import gleastsq/internal/nx.{type NxTensor}
 
-/// The `least_squares` function performs a basic least squares optimization algorithm.
+/// The `gauss_newton` function performs a basic least squares optimization algorithm.
 /// It is used to find the best-fit parameters for a given model function to a set of data points.
 /// This function takes as input the data points, the model function, and several optional parameters to control the optimization process.
 ///
@@ -31,7 +31,7 @@ import gleastsq/internal/nx.{type NxTensor}
 ///         The tolerance used to stop the optimization. Default is 0.0001.
 ///     - `damping` (Option(Float))
 ///         The damping factor used to stabilize the optimization. Default is 0.0001.
-pub fn least_squares(
+pub fn gauss_newton(
   x: List(Float),
   y: List(Float),
   func: fn(Float, List(Float)) -> Float,
@@ -52,11 +52,11 @@ pub fn least_squares(
   let tol = option.unwrap(opts.tolerance, 0.0001)
   let reg = option.unwrap(opts.damping, 0.0001)
 
-  use fitted <- result.try(do_least_squares(x, y, func, p, iter, eps, tol, reg))
+  use fitted <- result.try(do_gauss_newton(x, y, func, p, iter, eps, tol, reg))
   Ok(fitted |> nx.to_list_1d)
 }
 
-fn do_least_squares(
+fn do_gauss_newton(
   x: NxTensor,
   y: NxTensor,
   func: fn(NxTensor, NxTensor) -> Float,
@@ -85,7 +85,7 @@ fn do_least_squares(
       case nx.to_number(nx.norm(delta)) {
         x if x <. tolerance -> Ok(params)
         _ ->
-          do_least_squares(
+          do_gauss_newton(
             x,
             y,
             func,

@@ -1,7 +1,19 @@
 import gleastsq/internal/helpers/params.{decode_params}
-import gleastsq/internal/methods/least_squares as lsqr
+import gleastsq/internal/methods/gauss_newton as gn
 import gleastsq/internal/methods/levenberg_marquardt as lm
 import gleastsq/options.{type LeastSquareOptions}
+
+/// The `least_squares` function is an alias for the `levenberg_marquardt` function.
+/// Check the documentation of the `levenberg_marquardt` function for more information.
+pub fn least_squares(
+  x: List(Float),
+  y: List(Float),
+  func: fn(Float, List(Float)) -> Float,
+  initial_params: List(Float),
+  opts opts: List(LeastSquareOptions),
+) {
+  lm.levenberg_marquardt(x, y, func, initial_params, decode_params(opts))
+}
 
 /// The `levenberg_marquardt` function performs the Levenberg-Marquardt optimization algorithm.
 /// It is used to solve non-linear least squares problems. This function takes as input the data points,
@@ -64,7 +76,7 @@ pub fn levenberg_marquardt(
   lm.levenberg_marquardt(x, y, func, initial_params, decode_params(opts))
 }
 
-/// The `least_squares` function performs a basic least squares optimization algorithm.
+/// The `gauss_newton` function performs a basic least squares optimization algorithm.
 /// It is used to find the best-fit parameters for a given model function to a set of data points.
 /// This function takes as input the data points, the model function, and several optional parameters to control the optimization process.
 ///
@@ -102,7 +114,7 @@ pub fn levenberg_marquardt(
 ///   let initial_guess = [1.0, 1.0, 1.0]
 ///
 ///   let assert Ok(result) =
-///     gleastsq.least_squares(
+///     gleastsq.gauss_newton(
 ///       x,
 ///       y,
 ///       parabola,
@@ -113,12 +125,12 @@ pub fn levenberg_marquardt(
 ///   io.debug(result) // [1.0, 0.0, 0.0] (within numerical error)
 /// }
 /// ```
-pub fn least_squares(
+pub fn gauss_newton(
   x: List(Float),
   y: List(Float),
   func: fn(Float, List(Float)) -> Float,
   initial_params: List(Float),
   opts opts: List(LeastSquareOptions),
 ) {
-  lsqr.least_squares(x, y, func, initial_params, decode_params(opts))
+  gn.gauss_newton(x, y, func, initial_params, decode_params(opts))
 }
