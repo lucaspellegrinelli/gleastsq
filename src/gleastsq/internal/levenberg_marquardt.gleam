@@ -1,10 +1,11 @@
-import gleam/option.{type Option}
+import gleam/option
 import gleam/result
 import gleastsq/errors.{
   type FitErrors, JacobianTaskError, NonConverged, WrongParameters,
 }
 import gleastsq/internal/jacobian.{jacobian}
 import gleastsq/internal/nx.{type NxTensor}
+import gleastsq/internal/params.{type FitParams}
 import gleastsq/internal/utils.{compare_list_sizes, convert_func_params}
 
 /// The `levenberg_marquardt` function performs the Levenberg-Marquardt optimization algorithm.
@@ -20,35 +21,26 @@ import gleastsq/internal/utils.{compare_list_sizes, convert_func_params}
 ///     The model function that takes an x-value and a list of parameters, and returns the corresponding y-value.
 /// - `initial_params` (List(Float))
 ///     A list of initial guesses for the parameters of the model function.
-/// - `iterations` (Option(Int))
-///     The maximum number of iterations to perform.
-///     Default is 100.
-/// - `epsilon` (Option(Float))
-///     A small value to change x when calculating the derivatives for the function.
-///     Default is 0.0001.
-/// - `tolerance` (Option(Float))
-///     The convergence tolerance.
-///     Default is 0.0001.
-/// - `damping` (Option(Float))
-///     The initial value of the damping parameter.
-///     Default is 0.0001.
-/// - `damping_increase` (Option(Float))
-///     The factor by which the damping parameter is increased when a step fails.
-///     Default is 10.0.
-/// - `damping_decrease` (Option(Float)):
-///     The factor by which the damping parameter is decreased when a step succeeds.
-///     Default is 0.1.
+/// - `opts` (FitParams)
+///     A record with the following fields:
+///     - `iterations` (Option(Int))
+///         The maximum number of iterations to perform. Default is 100.
+///     - `epsilon` (Option(Float))
+///         The step size used to calculate the numerical gradient. Default is 0.0001.
+///     - `tolerance` (Option(Float))
+///         The tolerance used to stop the optimization. Default is 0.0001.
+///     - `damping` (Option(Float))
+///         The damping factor used to stabilize the optimization. Default is 0.0001.
+///     - `damping_increase` (Option(Float))
+///         The factor used to increase the damping factor when the optimization is not improving. Default is 10.0.
+///     - `damping_decrease` (Option(Float))
+///         The factor used to decrease the damping factor when the optimization is improving. Default is 0.1.
 pub fn levenberg_marquardt(
   x: List(Float),
   y: List(Float),
   func: fn(Float, List(Float)) -> Float,
   initial_params: List(Float),
-  max_iterations iterations: Option(Int),
-  epsilon epsilon: Option(Float),
-  tolerance tolerance: Option(Float),
-  damping damping: Option(Float),
-  damping_increase damping_increase: Option(Float),
-  damping_decrease damping_decrease: Option(Float),
+  opts opts: FitParams,
 ) -> Result(List(Float), FitErrors) {
   use _ <- result.try(result.replace_error(
     compare_list_sizes(x, y),
@@ -59,12 +51,12 @@ pub fn levenberg_marquardt(
   let x = nx.tensor(x)
   let y = nx.tensor(y)
   let func = convert_func_params(func)
-  let iter = option.unwrap(iterations, 100)
-  let eps = option.unwrap(epsilon, 0.0001)
-  let tol = option.unwrap(tolerance, 0.0001)
-  let reg = option.unwrap(damping, 0.0001)
-  let damping_inc = option.unwrap(damping_increase, 10.0)
-  let damping_dec = option.unwrap(damping_decrease, 0.1)
+  let iter = option.unwrap(opts.iterations, 100)
+  let eps = option.unwrap(opts.epsilon, 0.0001)
+  let tol = option.unwrap(opts.tolerance, 0.0001)
+  let reg = option.unwrap(opts.damping, 0.0001)
+  let damping_inc = option.unwrap(opts.damping_increase, 10.0)
+  let damping_dec = option.unwrap(opts.damping_decrease, 0.1)
 
   use fitted <- result.try(do_levenberg_marquardt(
     x,

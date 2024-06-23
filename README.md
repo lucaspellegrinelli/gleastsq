@@ -41,16 +41,7 @@ pub fn main() {
   let initial_guess = [1.0, 1.0, 1.0]
 
   let assert Ok(result) =
-    gleastsq.least_squares(
-      x,
-      y,
-      parabola,
-      initial_guess,
-      max_iterations: None,
-      epsilon: None,
-      tolerance: None,
-      lambda_reg: None,
-    )
+    gleastsq.least_squares(x, y, parabola, initial_guess, opts: [])
 
   io.debug(result) // [1.0, 0.0, 0.0] (within numerical error)
 }

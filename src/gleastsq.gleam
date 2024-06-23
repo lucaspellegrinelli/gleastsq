@@ -1,6 +1,7 @@
-import gleam/option.{type Option}
-import gleastsq/least_squares as lsqr
-import gleastsq/levenberg_marquardt as lm
+import gleastsq/internal/least_squares as lsqr
+import gleastsq/internal/levenberg_marquardt as lm
+import gleastsq/internal/params.{decode_params}
+import gleastsq/options.{type LeastSquareOptions}
 
 /// The `levenberg_marquardt` function performs the Levenberg-Marquardt optimization algorithm.
 /// It is used to solve non-linear least squares problems. This function takes as input the data points,
@@ -15,48 +16,52 @@ import gleastsq/levenberg_marquardt as lm
 ///     The model function that takes an x-value and a list of parameters, and returns the corresponding y-value.
 /// - `initial_params` (List(Float))
 ///     A list of initial guesses for the parameters of the model function.
-/// - `iterations` (Option(Int))
-///     The maximum number of iterations to perform.
-///     Default is 100.
-/// - `epsilon` (Option(Float))
-///     A small value to change x when calculating the derivatives for the function.
-///     Default is 0.0001.
-/// - `tolerance` (Option(Float))
-///     The convergence tolerance.
-///     Default is 0.0001.
-/// - `damping` (Option(Float))
-///     The initial value of the damping parameter.
-///     Default is 0.0001.
-/// - `damping_increase` (Option(Float))
-///     The factor by which the damping parameter is increased when a step fails.
-///     Default is 10.0.
-/// - `damping_decrease` (Option(Float)):
-///     The factor by which the damping parameter is decreased when a step succeeds.
-///     Default is 0.1.
+/// - `opts` (List(LeastSquareOptions))
+///     A list of optional parameters to control the optimization process.
+///     The available options are:
+///     - `Iterations(Int)`: The maximum number of iterations to perform. Default is 100.
+///     - `Epsilon(Float)`: A small value to change x when calculating the derivatives for the function. Default is 0.0001.
+///     - `Tolerance(Float)`: The convergence tolerance. Default is 0.0001.
+///     - `Damping(Float)`: The initial value of the damping parameter. Default is 0.0001.
+///     - `DampingIncrease(Float)`: The factor by which the damping parameter is increased when a step fails. Default is 10.0.
+///     - `DampingDecrease(Float)`: The factor by which the damping parameter is decreased when a step succeeds. Default is 0.1.
+///
+/// # Example
+/// ```gleam
+/// import gleam/io
+/// import gleastsq
+/// import gleastsq/options.{Iterations, Tolerance}
+///
+/// fn parabola(x: Float, params: List(Float)) -> Float {
+///   let assert [a, b, c] = params
+///   a *. x *. x +. b *. x +. c
+/// }
+///
+/// pub fn main() {
+///   let x = [0.0, 1.0, 2.0, 3.0, 4.0, 5.0]
+///   let y = [0.0, 1.0, 4.0, 9.0, 16.0, 25.0]
+///   let initial_guess = [1.0, 1.0, 1.0]
+///
+///   let assert Ok(result) =
+///     gleastsq.levenberg_marquardt(
+///       x,
+///       y,
+///       parabola,
+///       initial_guess,
+///       opts: [Iterations(1000), Tolerance(0.001)]
+///     )
+///
+///   io.debug(result) // [1.0, 0.0, 0.0] (within numerical error)
+/// }
+/// ```
 pub fn levenberg_marquardt(
   x: List(Float),
   y: List(Float),
   func: fn(Float, List(Float)) -> Float,
   initial_params: List(Float),
-  max_iterations iterations: Option(Int),
-  epsilon epsilon: Option(Float),
-  tolerance tolerance: Option(Float),
-  damping damping: Option(Float),
-  damping_increase damping_increase: Option(Float),
-  damping_decrease damping_decrease: Option(Float),
+  opts opts: List(LeastSquareOptions),
 ) {
-  lm.levenberg_marquardt(
-    x,
-    y,
-    func,
-    initial_params,
-    iterations,
-    epsilon,
-    tolerance,
-    damping,
-    damping_increase,
-    damping_decrease,
-  )
+  lm.levenberg_marquardt(x, y, func, initial_params, decode_params(opts))
 }
 
 /// The `least_squares` function performs a basic least squares optimization algorithm.
@@ -72,36 +77,48 @@ pub fn levenberg_marquardt(
 ///     The model function that takes an x-value and a list of parameters, and returns the corresponding y-value.
 /// - `initial_params` (List(Float))
 ///     A list of initial guesses for the parameters of the model function.
-/// - `iterations` (Option(Int))
-///     The maximum number of iterations to perform.
-///     Default is 100.
-/// - `epsilon` (Option(Float))
-///     A small value to change x when calculating the derivatives for the function.
-///     Default is 0.0001.
-/// - `tolerance` (Option(Float))
-///     The convergence tolerance.
-///     Default is 0.0001.
-/// - `lambda_reg` (Option(Float))
-///     The regularization parameter.
-///     Default is 0.0001.
+/// - `opts` (List(LeastSquareOptions))
+///     A list of optional parameters to control the optimization process.
+///     The available options are:
+///     - `Iterations(Int)`: The maximum number of iterations to perform. Default is 100.
+///     - `Epsilon(Float)`: A small value to change x when calculating the derivatives for the function. Default is 0.0001.
+///     - `Tolerance(Float)`: The convergence tolerance. Default is 0.0001.
+///     - `Damping(Float)`: The value of the damping parameter. Default is 0.0001.
+///
+/// # Example
+/// ```gleam
+/// import gleam/io
+/// import gleastsq
+/// import gleastsq/options.{Iterations, Tolerance}
+///
+/// fn parabola(x: Float, params: List(Float)) -> Float {
+///   let assert [a, b, c] = params
+///   a *. x *. x +. b *. x +. c
+/// }
+///
+/// pub fn main() {
+///   let x = [0.0, 1.0, 2.0, 3.0, 4.0, 5.0]
+///   let y = [0.0, 1.0, 4.0, 9.0, 16.0, 25.0]
+///   let initial_guess = [1.0, 1.0, 1.0]
+///
+///   let assert Ok(result) =
+///     gleastsq.least_squares(
+///       x,
+///       y,
+///       parabola,
+///       initial_guess,
+///       opts: [Iterations(1000), Tolerance(0.001)]
+///     )
+///
+///   io.debug(result) // [1.0, 0.0, 0.0] (within numerical error)
+/// }
+/// ```
 pub fn least_squares(
   x: List(Float),
   y: List(Float),
   func: fn(Float, List(Float)) -> Float,
   initial_params: List(Float),
-  max_iterations iterations: Option(Int),
-  epsilon epsilon: Option(Float),
-  tolerance tolerance: Option(Float),
-  lambda_reg lambda_reg: Option(Float),
+  opts opts: List(LeastSquareOptions),
 ) {
-  lsqr.least_squares(
-    x,
-    y,
-    func,
-    initial_params,
-    iterations,
-    epsilon,
-    tolerance,
-    lambda_reg,
-  )
+  lsqr.least_squares(x, y, func, initial_params, decode_params(opts))
 }

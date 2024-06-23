@@ -1,10 +1,11 @@
-import gleam/option.{type Option}
+import gleam/option
 import gleam/result
 import gleastsq/errors.{
   type FitErrors, JacobianTaskError, NonConverged, WrongParameters,
 }
 import gleastsq/internal/jacobian.{jacobian}
 import gleastsq/internal/nx.{type NxTensor}
+import gleastsq/internal/params.{type FitParams}
 import gleastsq/internal/utils.{compare_list_sizes, convert_func_params}
 
 /// The `least_squares` function performs a basic least squares optimization algorithm.
@@ -20,27 +21,22 @@ import gleastsq/internal/utils.{compare_list_sizes, convert_func_params}
 ///     The model function that takes an x-value and a list of parameters, and returns the corresponding y-value.
 /// - `initial_params` (List(Float))
 ///     A list of initial guesses for the parameters of the model function.
-/// - `iterations` (Option(Int))
-///     The maximum number of iterations to perform.
-///     Default is 100.
-/// - `epsilon` (Option(Float))
-///     A small value to change x when calculating the derivatives for the function.
-///     Default is 0.0001.
-/// - `tolerance` (Option(Float))
-///     The convergence tolerance.
-///     Default is 0.0001.
-/// - `lambda_reg` (Option(Float))
-///     The regularization parameter.
-///     Default is 0.0001.
+/// - `opts` (FitParams)
+///     A record with the following fields:
+///     - `iterations` (Option(Int))
+///         The maximum number of iterations to perform. Default is 100.
+///     - `epsilon` (Option(Float))
+///         The step size used to calculate the numerical gradient. Default is 0.0001.
+///     - `tolerance` (Option(Float))
+///         The tolerance used to stop the optimization. Default is 0.0001.
+///     - `damping` (Option(Float))
+///         The damping factor used to stabilize the optimization. Default is 0.0001.
 pub fn least_squares(
   x: List(Float),
   y: List(Float),
   func: fn(Float, List(Float)) -> Float,
   initial_params: List(Float),
-  max_iterations iterations: Option(Int),
-  epsilon epsilon: Option(Float),
-  tolerance tolerance: Option(Float),
-  lambda_reg lambda_reg: Option(Float),
+  opts opts: FitParams,
 ) -> Result(List(Float), FitErrors) {
   use _ <- result.try(result.replace_error(
     compare_list_sizes(x, y),
@@ -51,10 +47,10 @@ pub fn least_squares(
   let x = nx.tensor(x)
   let y = nx.tensor(y)
   let func = convert_func_params(func)
-  let iter = option.unwrap(iterations, 100)
-  let eps = option.unwrap(epsilon, 0.0001)
-  let tol = option.unwrap(tolerance, 0.0001)
-  let reg = option.unwrap(lambda_reg, 0.0001)
+  let iter = option.unwrap(opts.iterations, 100)
+  let eps = option.unwrap(opts.epsilon, 0.0001)
+  let tol = option.unwrap(opts.tolerance, 0.0001)
+  let reg = option.unwrap(opts.damping, 0.0001)
 
   use fitted <- result.try(do_least_squares(x, y, func, p, iter, eps, tol, reg))
   Ok(fitted |> nx.to_list_1d)

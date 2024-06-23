@@ -1,4 +1,3 @@
-import gleam/option.{None}
 import gleastsq
 import gleeunit/should
 import utils/curves.{double_gaussian, exponential, gaussian, parabola}
@@ -10,7 +9,7 @@ pub fn leastsq(
   f: fn(Float, List(Float)) -> Float,
   p: List(Float),
 ) {
-  gleastsq.least_squares(x, y, f, p, None, None, None, None)
+  gleastsq.least_squares(x, y, f, p, [])
 }
 
 pub fn perfect_power_of_2_fit_test() {
