@@ -3,10 +3,10 @@ import gleam/result
 import gleastsq/errors.{
   type FitErrors, JacobianTaskError, NonConverged, WrongParameters,
 }
+import gleastsq/internal/helpers/params.{type FitParams}
+import gleastsq/internal/helpers/utils.{compare_list_sizes, convert_func_params}
 import gleastsq/internal/jacobian.{jacobian}
 import gleastsq/internal/nx.{type NxTensor}
-import gleastsq/internal/params.{type FitParams}
-import gleastsq/internal/utils.{compare_list_sizes, convert_func_params}
 
 /// The `levenberg_marquardt` function performs the Levenberg-Marquardt optimization algorithm.
 /// It is used to solve non-linear least squares problems. This function takes as input the data points,

@@ -1,6 +1,6 @@
-import gleastsq/internal/least_squares as lsqr
-import gleastsq/internal/levenberg_marquardt as lm
-import gleastsq/internal/params.{decode_params}
+import gleastsq/internal/helpers/params.{decode_params}
+import gleastsq/internal/methods/least_squares as lsqr
+import gleastsq/internal/methods/levenberg_marquardt as lm
 import gleastsq/options.{type LeastSquareOptions}
 
 /// The `levenberg_marquardt` function performs the Levenberg-Marquardt optimization algorithm.
