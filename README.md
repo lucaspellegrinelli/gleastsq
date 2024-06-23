@@ -26,7 +26,6 @@ gleam add gleastsq
 ```
 
 ```gleam
-import gleam/option.{None}
 import gleam/io
 import gleastsq
 
