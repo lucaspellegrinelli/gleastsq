@@ -51,7 +51,6 @@ pub fn levenberg_marquardt(
   let p = nx.tensor(initial_params)
   let x = nx.tensor(x)
   let y = nx.tensor(y)
-  let func = nx.convert_func_params(func)
   let iter = option.unwrap(opts.iterations, 100)
   let eps = option.unwrap(opts.epsilon, 0.0001)
   let tol = option.unwrap(opts.tolerance, 0.0001)
@@ -84,7 +83,7 @@ fn ternary(cond: Bool, a: a, b: a) -> a {
 fn do_levenberg_marquardt(
   x: NxTensor,
   y: NxTensor,
-  func: fn(NxTensor, NxTensor) -> Float,
+  func: fn(Float, List(Float)) -> Float,
   params: NxTensor,
   max_iterations: Int,
   epsilon: Float,
@@ -94,13 +93,14 @@ fn do_levenberg_marquardt(
   damping_decrease: Float,
 ) -> Result(NxTensor, FitErrors) {
   let m = nx.shape(params).0
-  let y_fit = nx.map(x, func(_, params))
+  let y_fit =
+    x |> nx.to_list_1d |> list.map(func(_, nx.to_list_1d(params))) |> nx.tensor
   case max_iterations {
     0 -> Error(NonConverged)
     iterations -> {
       let r = nx.subtract(y, y_fit)
       use j <- result.try(result.replace_error(
-        jacobian(x, y_fit, func, params, epsilon),
+        jacobian(nx.to_list_1d(x), y_fit, func, params, epsilon),
         JacobianTaskError,
       ))
 
@@ -114,7 +114,9 @@ fn do_levenberg_marquardt(
       case nx.to_number(nx.norm(delta)) {
         x if x <. tolerance -> Ok(new_params)
         _ -> {
-          let new_r = x |> nx.map(func(_, new_params)) |> nx.subtract(y, _)
+          let new_y_fit =
+            x |> nx.to_list_1d |> list.map(func(_, nx.to_list_1d(new_params))) |> nx.tensor
+          let new_r = nx.subtract(y, new_y_fit)
           let prev_error = nx.sum(nx.pow(r, 2.0)) |> nx.to_number
           let new_error = nx.sum(nx.pow(new_r, 2.0)) |> nx.to_number
           let impr = new_error <. prev_error

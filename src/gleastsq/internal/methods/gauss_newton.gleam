@@ -47,7 +47,6 @@ pub fn gauss_newton(
   let p = nx.tensor(initial_params)
   let x = nx.tensor(x)
   let y = nx.tensor(y)
-  let func = nx.convert_func_params(func)
   let iter = option.unwrap(opts.iterations, 100)
   let eps = option.unwrap(opts.epsilon, 0.0001)
   let tol = option.unwrap(opts.tolerance, 0.0001)
@@ -60,7 +59,7 @@ pub fn gauss_newton(
 fn do_gauss_newton(
   x: NxTensor,
   y: NxTensor,
-  func: fn(NxTensor, NxTensor) -> Float,
+  func: fn(Float, List(Float)) -> Float,
   params: NxTensor,
   max_iterations: Int,
   epsilon: Float,
@@ -68,13 +67,14 @@ fn do_gauss_newton(
   lambda_reg: Float,
 ) -> Result(NxTensor, FitErrors) {
   let m = nx.shape(params).0
-  let y_fit = nx.map(x, func(_, params))
+  let y_fit =
+    x |> nx.to_list_1d |> list.map(func(_, nx.to_list_1d(params))) |> nx.tensor
   case max_iterations {
     0 -> Error(NonConverged)
     iterations -> {
       let r = nx.subtract(y, y_fit)
       use j <- result.try(result.replace_error(
-        jacobian(x, y_fit, func, params, epsilon),
+        jacobian(nx.to_list_1d(x), y_fit, func, params, epsilon),
         JacobianTaskError,
       ))
 

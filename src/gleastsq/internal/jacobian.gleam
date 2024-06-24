@@ -8,9 +8,9 @@ pub opaque type JacobianError {
 }
 
 pub fn jacobian(
-  x: NxTensor,
+  x: List(Float),
   y_fit: NxTensor,
-  func: fn(NxTensor, NxTensor) -> Float,
+  func: fn(Float, List(Float)) -> Float,
   params: NxTensor,
   epsilon: Float,
 ) {
@@ -32,9 +32,9 @@ pub fn jacobian(
 }
 
 fn compute_jacobian_col(
-  x: NxTensor,
+  x: List(Float),
   y_fit: NxTensor,
-  func: fn(NxTensor, NxTensor) -> Float,
+  func: fn(Float, List(Float)) -> Float,
   params: NxTensor,
   epsilon: Float,
   n: Int,
@@ -49,6 +49,6 @@ fn compute_jacobian_col(
   let zeros_n = nx.broadcast(0.0, #(n))
   let mask = nx.indexed_put(zeros_n, nx.tensor([i]), epsilon)
   let up_params = nx.add(params, mask)
-  let up_f = nx.map(x, func(_, up_params))
+  let up_f = list.map(x, func(_, nx.to_list_1d(up_params))) |> nx.tensor
   nx.new_axis(nx.divide(nx.subtract(up_f, y_fit), epsilon), 1)
 }
