@@ -28,3 +28,13 @@ pub fn double_gaussian(x: Float, params: List(Float)) -> Float {
   let assert [mul1, mu1, sigma1, mul2, mu2, sigma2] = params
   mul1 *. gaussian(x, [mu1, sigma1]) +. mul2 *. gaussian(x, [mu2, sigma2])
 }
+
+pub fn triple_gaussian(x: Float, params: List(Float)) -> Float {
+  let assert [mul1, mu1, sigma1, mul2, mu2, sigma2, mul3, mu3, sigma3] = params
+  mul1
+  *. gaussian(x, [mu1, sigma1])
+  +. mul2
+  *. gaussian(x, [mu2, sigma2])
+  +. mul3
+  *. gaussian(x, [mu3, sigma3])
+}
