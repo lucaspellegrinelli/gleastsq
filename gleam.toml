@@ -3,7 +3,7 @@ version = "0.4.2"
 target = "erlang"
 
 licences = ["Apache-2.0"]
-description = "A curve fitting library for Gleam."
+description = "A least squares curve fitting library for Gleam."
 repository = { type = "github", user = "lucaspellegrinelli", repo = "gleastsq" }
 
 [dependencies]
