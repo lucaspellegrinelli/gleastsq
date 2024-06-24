@@ -67,3 +67,11 @@ pub fn put_slice(a: NxTensor, indices: List(Int), value: NxTensor) -> NxTensor
 
 @external(erlang, "Elixir.Nx", "concatenate")
 pub fn concatenate(a: List(NxTensor), opts opts: List(NxOpts)) -> NxTensor
+
+pub fn convert_func_params(
+  func: fn(Float, List(Float)) -> Float,
+) -> fn(NxTensor, NxTensor) -> Float {
+  fn(x: NxTensor, params: NxTensor) -> Float {
+    func(to_number(x), to_list_1d(params))
+  }
+}

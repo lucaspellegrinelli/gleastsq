@@ -1,12 +1,13 @@
+import gleam/bool
+import gleam/list
 import gleam/option
 import gleam/result
 import gleastsq/errors.{
   type FitErrors, JacobianTaskError, NonConverged, WrongParameters,
 }
-import gleastsq/internal/helpers/params.{type FitParams}
-import gleastsq/internal/helpers/utils.{compare_list_sizes, convert_func_params}
 import gleastsq/internal/jacobian.{jacobian}
 import gleastsq/internal/nx.{type NxTensor}
+import gleastsq/internal/params.{type FitParams}
 
 /// The `gauss_newton` function performs a basic least squares optimization algorithm.
 /// It is used to find the best-fit parameters for a given model function to a set of data points.
@@ -38,15 +39,15 @@ pub fn gauss_newton(
   initial_params: List(Float),
   opts opts: FitParams,
 ) -> Result(List(Float), FitErrors) {
-  use _ <- result.try(result.replace_error(
-    compare_list_sizes(x, y),
-    WrongParameters("x and y must have the same length"),
-  ))
+  use <- bool.guard(
+    list.length(x) != list.length(y),
+    Error(WrongParameters("x and y must have the same length")),
+  )
 
   let p = nx.tensor(initial_params)
   let x = nx.tensor(x)
   let y = nx.tensor(y)
-  let func = convert_func_params(func)
+  let func = nx.convert_func_params(func)
   let iter = option.unwrap(opts.iterations, 100)
   let eps = option.unwrap(opts.epsilon, 0.0001)
   let tol = option.unwrap(opts.tolerance, 0.0001)

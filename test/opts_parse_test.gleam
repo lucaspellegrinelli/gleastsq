@@ -1,5 +1,5 @@
 import gleam/option.{None, Some}
-import gleastsq/internal/helpers/params.{decode_params}
+import gleastsq/internal/params.{decode_params}
 import gleastsq/options.{
   Damping, DampingDecrease, DampingIncrease, Epsilon, Iterations, Tolerance,
 }

@@ -1,6 +1,6 @@
-import gleastsq/internal/helpers/params.{decode_params}
 import gleastsq/internal/methods/gauss_newton as gn
 import gleastsq/internal/methods/levenberg_marquardt as lm
+import gleastsq/internal/params.{decode_params}
 import gleastsq/options.{type LeastSquareOptions}
 
 /// The `least_squares` function is an alias for the `levenberg_marquardt` function.
