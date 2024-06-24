@@ -70,47 +70,42 @@ fn do_gauss_newton(
   y: NxTensor,
   func: fn(Float, List(Float)) -> Float,
   params: List(Float),
-  max_iterations: Int,
+  iterations: Int,
   epsilon: Float,
   tolerance: Float,
   lambda_reg: Float,
 ) {
+  use <- bool.guard(iterations == 0, Error(NonConverged))
+
   let m = list.length(params)
   let y_fit = list.map(x, func(_, params)) |> nx.tensor
-  case max_iterations {
-    0 -> Error(NonConverged)
-    iterations -> {
-      let r = nx.subtract(y, y_fit)
-      use j <- result.try(result.replace_error(
-        jacobian(x, y_fit, func, params, epsilon),
-        JacobianTaskError,
-      ))
+  let r = nx.subtract(y, y_fit)
+  use j <- result.try(result.replace_error(
+    jacobian(x, y_fit, func, params, epsilon),
+    JacobianTaskError,
+  ))
 
-      let jt = nx.transpose(j)
-      let eye = nx.eye(m) |> nx.multiply(lambda_reg)
-      let jtj = nx.add(nx.dot(jt, j), eye)
-      let jt_r = nx.dot(jt, r)
-      let delta = nx.solve(jtj, jt_r) |> nx.to_list_1d
-      let delta_norm = norm(delta, 2.0)
+  let jt = nx.transpose(j)
+  let eye = nx.eye(m) |> nx.multiply(lambda_reg)
+  let jtj = nx.add(nx.dot(jt, j), eye)
+  let jt_r = nx.dot(jt, r)
+  let delta = nx.solve(jtj, jt_r) |> nx.to_list_1d
+  let delta_norm = norm(delta, 2.0)
 
-      let new_params =
-        list.zip(params, delta)
-        |> list.map(fn(p) { p.0 +. p.1 })
+  let new_params =
+    list.zip(params, delta)
+    |> list.map(fn(p) { p.0 +. p.1 })
 
-      case delta_norm {
-        x if x <. tolerance -> Ok(new_params)
-        _ ->
-          do_gauss_newton(
-            x,
-            y,
-            func,
-            new_params,
-            iterations - 1,
-            epsilon,
-            tolerance,
-            lambda_reg,
-          )
-      }
-    }
-  }
+  use <- bool.guard(delta_norm <. tolerance, Ok(new_params))
+
+  do_gauss_newton(
+    x,
+    y,
+    func,
+    new_params,
+    iterations - 1,
+    epsilon,
+    tolerance,
+    lambda_reg,
+  )
 }

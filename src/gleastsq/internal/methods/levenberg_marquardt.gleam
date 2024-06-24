@@ -74,10 +74,7 @@ pub fn levenberg_marquardt(
 }
 
 fn ternary(cond: Bool, a: a, b: a) -> a {
-  case cond {
-    True -> a
-    False -> b
-  }
+  bool.guard(cond, a, fn() { b })
 }
 
 fn do_levenberg_marquardt(
@@ -85,57 +82,51 @@ fn do_levenberg_marquardt(
   y: NxTensor,
   func: fn(Float, List(Float)) -> Float,
   params: List(Float),
-  max_iterations: Int,
+  iterations: Int,
   epsilon: Float,
   tolerance: Float,
   damping: Float,
   damping_increase: Float,
   damping_decrease: Float,
 ) {
+  use <- bool.guard(iterations == 0, Error(NonConverged))
+
   let m = list.length(params)
   let y_fit = list.map(x, func(_, params)) |> nx.tensor
-  case max_iterations {
-    0 -> Error(NonConverged)
-    iterations -> {
-      let r = nx.subtract(y, y_fit)
-      use j <- result.try(result.replace_error(
-        jacobian(x, y_fit, func, params, epsilon),
-        JacobianTaskError,
-      ))
+  let r = nx.subtract(y, y_fit)
+  use j <- result.try(result.replace_error(
+    jacobian(x, y_fit, func, params, epsilon),
+    JacobianTaskError,
+  ))
 
-      let jt = nx.transpose(j)
-      let lambda_eye = nx.eye(m) |> nx.multiply(damping)
-      let h_damped = nx.add(nx.dot(jt, j), lambda_eye)
-      let g = nx.dot(jt, r)
-      let delta = nx.solve(h_damped, g) |> nx.to_list_1d
-      let delta_norm = norm(delta, 2.0)
+  let jt = nx.transpose(j)
+  let lambda_eye = nx.eye(m) |> nx.multiply(damping)
+  let h_damped = nx.add(nx.dot(jt, j), lambda_eye)
+  let g = nx.dot(jt, r)
+  let delta = nx.solve(h_damped, g) |> nx.to_list_1d
+  let delta_norm = norm(delta, 2.0)
 
-      let new_params =
-        list.zip(params, delta)
-        |> list.map(fn(p) { p.0 +. p.1 })
+  let new_params =
+    list.zip(params, delta)
+    |> list.map(fn(p) { p.0 +. p.1 })
 
-      case delta_norm {
-        norm if norm <. tolerance -> Ok(new_params)
-        _ -> {
-          let new_y_fit = list.map(x, func(_, new_params)) |> nx.tensor
-          let new_r = nx.subtract(y, new_y_fit)
-          let prev_error = nx.sum(nx.pow(r, 2.0)) |> nx.to_number
-          let new_error = nx.sum(nx.pow(new_r, 2.0)) |> nx.to_number
-          let impr = new_error <. prev_error
-          do_levenberg_marquardt(
-            x,
-            y,
-            func,
-            ternary(impr, new_params, params),
-            iterations - 1,
-            epsilon,
-            tolerance,
-            damping *. ternary(impr, damping_decrease, damping_increase),
-            damping_increase,
-            damping_decrease,
-          )
-        }
-      }
-    }
-  }
+  use <- bool.guard(delta_norm <. tolerance, Ok(new_params))
+
+  let new_y_fit = list.map(x, func(_, new_params)) |> nx.tensor
+  let new_r = nx.subtract(y, new_y_fit)
+  let prev_error = nx.sum(nx.pow(r, 2.0)) |> nx.to_number
+  let new_error = nx.sum(nx.pow(new_r, 2.0)) |> nx.to_number
+  let impr = new_error <. prev_error
+  do_levenberg_marquardt(
+    x,
+    y,
+    func,
+    ternary(impr, new_params, params),
+    iterations - 1,
+    epsilon,
+    tolerance,
+    damping *. ternary(impr, damping_decrease, damping_increase),
+    damping_increase,
+    damping_decrease,
+  )
 }
