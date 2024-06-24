@@ -1,6 +1,8 @@
 import gleastsq
 import gleeunit/should
-import utils/curves.{double_gaussian, exponential, gaussian, parabola}
+import utils/curves.{
+  double_gaussian, exponential, gaussian, parabola, triple_gaussian,
+}
 import utils/helpers.{are_fits_equivalent, fit_to_curve, generate_x_axis}
 
 pub fn gn(
@@ -80,6 +82,24 @@ pub fn noisy_double_gaussian_fit_test() {
     Ok(result) -> {
       // If it converges, it should be a bad fit
       are_fits_equivalent(x, double_gaussian, params, result)
+      |> should.be_false
+    }
+    Error(_) -> {
+      // We expect it to not converge
+      should.be_true(True)
+    }
+  }
+}
+
+pub fn noisy_triple_gaussian_fit_test() {
+  // Gauss-Newton will not generally converge on this function
+  let x = generate_x_axis(-3, 7, 100)
+  let params = [1.2, 0.3, 0.5, 2.5, 2.0, 1.0, 1.0, -2.0, 0.1]
+  let result = fit_to_curve(x, triple_gaussian, params, gn, noisy: True)
+  case result {
+    Ok(result) -> {
+      // If it converges, it should be a bad fit
+      are_fits_equivalent(x, triple_gaussian, params, result)
       |> should.be_false
     }
     Error(_) -> {

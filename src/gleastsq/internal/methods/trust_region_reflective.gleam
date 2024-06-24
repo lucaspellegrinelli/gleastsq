@@ -51,8 +51,7 @@ fn ternary(cond: Bool, a: a, b: a) -> a {
 fn dogleg(j: NxTensor, g: NxTensor, b: NxTensor, delta: Float) -> NxTensor {
   let jt = nx.transpose(j)
   let jg = nx.dot(j, g)
-  let g_g = nx.dot(g, g)
-  let p_u_numerator = nx.negate(g_g)
+  let p_u_numerator = nx.negate(nx.dot(g, g))
   let p_u_denominator = nx.dot(g, nx.dot(jt, jg))
   let p_u = nx.multiply_mat(nx.divide_mat(p_u_numerator, p_u_denominator), g)
 

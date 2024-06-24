@@ -1,7 +1,8 @@
-import gleam/io
 import gleastsq
 import gleeunit/should
-import utils/curves.{double_gaussian, exponential, gaussian, parabola}
+import utils/curves.{
+  double_gaussian, exponential, gaussian, parabola, triple_gaussian,
+}
 import utils/helpers.{are_fits_equivalent, fit_to_curve, generate_x_axis}
 
 pub fn trr(
@@ -80,6 +81,15 @@ pub fn noisy_double_gaussian_fit_test() {
   let assert Ok(result) =
     fit_to_curve(x, double_gaussian, params, trr, noisy: True)
   are_fits_equivalent(x, double_gaussian, params, result)
+  |> should.be_true
+}
+
+pub fn noisy_triple_gaussian_fit_test() {
+  let x = generate_x_axis(-3, 7, 100)
+  let params = [1.2, 0.3, 0.5, 2.5, 2.0, 1.0, 1.0, -2.0, 0.1]
+  let assert Ok(result) =
+    fit_to_curve(x, triple_gaussian, params, trr, noisy: True)
+  are_fits_equivalent(x, triple_gaussian, params, result)
   |> should.be_true
 }
 
