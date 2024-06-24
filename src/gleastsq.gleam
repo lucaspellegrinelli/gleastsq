@@ -1,5 +1,6 @@
 import gleastsq/internal/methods/gauss_newton as gn
 import gleastsq/internal/methods/levenberg_marquardt as lm
+import gleastsq/internal/methods/trust_region_reflective as trr
 import gleastsq/internal/params.{decode_params}
 import gleastsq/options.{type LeastSquareOptions}
 
@@ -133,4 +134,14 @@ pub fn gauss_newton(
   opts opts: List(LeastSquareOptions),
 ) {
   gn.gauss_newton(x, y, func, initial_params, decode_params(opts))
+}
+
+pub fn trust_region_reflective(
+  x: List(Float),
+  y: List(Float),
+  func: fn(Float, List(Float)) -> Float,
+  initial_params: List(Float),
+  opts opts: List(LeastSquareOptions),
+) {
+  trr.trust_region_reflective(x, y, func, initial_params, decode_params(opts))
 }

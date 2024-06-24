@@ -17,6 +17,9 @@ pub fn dot(a: NxTensor, b: NxTensor) -> NxTensor
 @external(erlang, "Elixir.Nx", "multiply")
 pub fn multiply(a: NxTensor, b: Float) -> NxTensor
 
+@external(erlang, "Elixir.Nx", "multiply")
+pub fn multiply_mat(a: NxTensor, b: NxTensor) -> NxTensor
+
 @external(erlang, "Elixir.Nx", "add")
 pub fn add(a: NxTensor, b: NxTensor) -> NxTensor
 
@@ -32,6 +35,9 @@ pub fn subtract(a: NxTensor, b: NxTensor) -> NxTensor
 @external(erlang, "Elixir.Nx", "transpose")
 pub fn transpose(a: NxTensor) -> NxTensor
 
+@external(erlang, "Elixir.Nx", "negate")
+pub fn negate(a: NxTensor) -> NxTensor
+
 @external(erlang, "Elixir.Nx", "shape")
 pub fn shape(a: NxTensor) -> #(Int)
 
@@ -44,11 +50,17 @@ pub fn to_number(a: NxTensor) -> Float
 @external(erlang, "Elixir.Nx.LinAlg", "solve")
 pub fn solve(a: NxTensor, b: NxTensor) -> NxTensor
 
+@external(erlang, "Elixir.Nx.LinAlg", "norm")
+pub fn norm(a: NxTensor) -> NxTensor
+
 @external(erlang, "Elixir.Nx", "new_axis")
 pub fn new_axis(a: NxTensor, axis: Int) -> NxTensor
 
 @external(erlang, "Elixir.Nx", "divide")
 pub fn divide(a: NxTensor, b: Float) -> NxTensor
+
+@external(erlang, "Elixir.Nx", "divide")
+pub fn divide_mat(a: NxTensor, b: NxTensor) -> NxTensor
 
 @external(erlang, "Elixir.Nx", "concatenate")
 pub fn concatenate(a: List(NxTensor), opts opts: List(NxOpts)) -> NxTensor
