@@ -39,19 +39,13 @@ fn compute_jacobian_col(
   epsilon: Float,
   i: Int,
 ) -> NxTensor {
-  // Originally this was implemented by calculating a "up_f" and a "down_f" and then
-  // the jacobian column was calculated as (up_f - down_f) / (2 * epsilon).
-  // But since the main bottleneck of this function is calling the Gleam function in
-  // every Elixir Nx's maps (because of gleastsq/internal/nx.{convert_func_params}),
-  // it was decided to calculate the jacobian column as (up_f - y_fit) / epsilon where
-  // "y_fit" is the result of the function with the original parameters.
-
-  let up_params = params |> list.index_map(fn(v, idx) {
-    case idx == i {
-      True -> v +. epsilon
-      False -> v
-    }
-  })
+  let up_params =
+    list.index_map(params, fn(v, idx) {
+      case idx == i {
+        True -> v +. epsilon
+        False -> v
+      }
+    })
 
   let up_f = list.map(x, func(_, up_params)) |> nx.tensor
   nx.new_axis(nx.divide(nx.subtract(up_f, y_fit), epsilon), 1)
