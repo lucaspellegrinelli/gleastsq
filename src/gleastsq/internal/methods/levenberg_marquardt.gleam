@@ -2,6 +2,7 @@ import gleam/bool
 import gleam/list
 import gleam/option
 import gleam/result
+import gleam_community/maths/metrics.{norm}
 import gleastsq/errors.{
   type FitErrors, JacobianTaskError, NonConverged, WrongParameters,
 }
@@ -48,10 +49,8 @@ pub fn levenberg_marquardt(
     Error(WrongParameters("x and y must have the same length")),
   )
 
-  let p = nx.tensor(initial_params)
-  let x = nx.tensor(x)
+  let x = nx.tensor(x) |> nx.to_list_1d
   let y = nx.tensor(y)
-  let func = nx.convert_func_params(func)
   let iter = option.unwrap(opts.iterations, 100)
   let eps = option.unwrap(opts.epsilon, 0.0001)
   let tol = option.unwrap(opts.tolerance, 0.0001)
@@ -63,7 +62,7 @@ pub fn levenberg_marquardt(
     x,
     y,
     func,
-    p,
+    initial_params,
     iter,
     eps,
     tol,
@@ -71,7 +70,7 @@ pub fn levenberg_marquardt(
     damping_inc,
     damping_dec,
   ))
-  Ok(fitted |> nx.to_list_1d)
+  Ok(fitted)
 }
 
 fn ternary(cond: Bool, a: a, b: a) -> a {
@@ -82,19 +81,19 @@ fn ternary(cond: Bool, a: a, b: a) -> a {
 }
 
 fn do_levenberg_marquardt(
-  x: NxTensor,
+  x: List(Float),
   y: NxTensor,
-  func: fn(NxTensor, NxTensor) -> Float,
-  params: NxTensor,
+  func: fn(Float, List(Float)) -> Float,
+  params: List(Float),
   max_iterations: Int,
   epsilon: Float,
   tolerance: Float,
   damping: Float,
   damping_increase: Float,
   damping_decrease: Float,
-) -> Result(NxTensor, FitErrors) {
-  let m = nx.shape(params).0
-  let y_fit = nx.map(x, func(_, params))
+) {
+  let m = list.length(params)
+  let y_fit = list.map(x, func(_, params)) |> nx.tensor
   case max_iterations {
     0 -> Error(NonConverged)
     iterations -> {
@@ -108,13 +107,18 @@ fn do_levenberg_marquardt(
       let lambda_eye = nx.eye(m) |> nx.multiply(damping)
       let h_damped = nx.add(nx.dot(jt, j), lambda_eye)
       let g = nx.dot(jt, r)
-      let delta = nx.solve(h_damped, g)
+      let delta = nx.solve(h_damped, g) |> nx.to_list_1d
+      let delta_norm = norm(delta, 2.0)
 
-      let new_params = nx.add(params, delta)
-      case nx.to_number(nx.norm(delta)) {
-        x if x <. tolerance -> Ok(new_params)
+      let new_params =
+        list.zip(params, delta)
+        |> list.map(fn(p) { p.0 +. p.1 })
+
+      case delta_norm {
+        norm if norm <. tolerance -> Ok(new_params)
         _ -> {
-          let new_r = x |> nx.map(func(_, new_params)) |> nx.subtract(y, _)
+          let new_y_fit = list.map(x, func(_, new_params)) |> nx.tensor
+          let new_r = nx.subtract(y, new_y_fit)
           let prev_error = nx.sum(nx.pow(r, 2.0)) |> nx.to_number
           let new_error = nx.sum(nx.pow(new_r, 2.0)) |> nx.to_number
           let impr = new_error <. prev_error

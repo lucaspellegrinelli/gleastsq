@@ -2,6 +2,7 @@ import gleam/bool
 import gleam/list
 import gleam/option
 import gleam/result
+import gleam_community/maths/metrics.{norm}
 import gleastsq/errors.{
   type FitErrors, JacobianTaskError, NonConverged, WrongParameters,
 }
@@ -44,31 +45,38 @@ pub fn gauss_newton(
     Error(WrongParameters("x and y must have the same length")),
   )
 
-  let p = nx.tensor(initial_params)
-  let x = nx.tensor(x)
+  let x = nx.tensor(x) |> nx.to_list_1d
   let y = nx.tensor(y)
-  let func = nx.convert_func_params(func)
   let iter = option.unwrap(opts.iterations, 100)
   let eps = option.unwrap(opts.epsilon, 0.0001)
   let tol = option.unwrap(opts.tolerance, 0.0001)
-  let reg = option.unwrap(opts.damping, 0.0001)
+  let reg = option.unwrap(opts.damping, 0.001)
 
-  use fitted <- result.try(do_gauss_newton(x, y, func, p, iter, eps, tol, reg))
-  Ok(fitted |> nx.to_list_1d)
+  use fitted <- result.try(do_gauss_newton(
+    x,
+    y,
+    func,
+    initial_params,
+    iter,
+    eps,
+    tol,
+    reg,
+  ))
+  Ok(fitted)
 }
 
 fn do_gauss_newton(
-  x: NxTensor,
+  x: List(Float),
   y: NxTensor,
-  func: fn(NxTensor, NxTensor) -> Float,
-  params: NxTensor,
+  func: fn(Float, List(Float)) -> Float,
+  params: List(Float),
   max_iterations: Int,
   epsilon: Float,
   tolerance: Float,
   lambda_reg: Float,
-) -> Result(NxTensor, FitErrors) {
-  let m = nx.shape(params).0
-  let y_fit = nx.map(x, func(_, params))
+) {
+  let m = list.length(params)
+  let y_fit = list.map(x, func(_, params)) |> nx.tensor
   case max_iterations {
     0 -> Error(NonConverged)
     iterations -> {
@@ -82,16 +90,21 @@ fn do_gauss_newton(
       let eye = nx.eye(m) |> nx.multiply(lambda_reg)
       let jtj = nx.add(nx.dot(jt, j), eye)
       let jt_r = nx.dot(jt, r)
-      let delta = nx.solve(jtj, jt_r)
+      let delta = nx.solve(jtj, jt_r) |> nx.to_list_1d
+      let delta_norm = norm(delta, 2.0)
 
-      case nx.to_number(nx.norm(delta)) {
-        x if x <. tolerance -> Ok(params)
+      let new_params =
+        list.zip(params, delta)
+        |> list.map(fn(p) { p.0 +. p.1 })
+
+      case delta_norm {
+        x if x <. tolerance -> Ok(new_params)
         _ ->
           do_gauss_newton(
             x,
             y,
             func,
-            nx.add(params, delta),
+            new_params,
             iterations - 1,
             epsilon,
             tolerance,
