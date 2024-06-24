@@ -49,7 +49,7 @@ pub fn levenberg_marquardt(
     Error(WrongParameters("x and y must have the same length")),
   )
 
-  let x = nx.tensor(x)
+  let x = nx.tensor(x) |> nx.to_list_1d
   let y = nx.tensor(y)
   let iter = option.unwrap(opts.iterations, 100)
   let eps = option.unwrap(opts.epsilon, 0.0001)
@@ -81,7 +81,7 @@ fn ternary(cond: Bool, a: a, b: a) -> a {
 }
 
 fn do_levenberg_marquardt(
-  x: NxTensor,
+  x: List(Float),
   y: NxTensor,
   func: fn(Float, List(Float)) -> Float,
   params: List(Float),
@@ -93,14 +93,13 @@ fn do_levenberg_marquardt(
   damping_decrease: Float,
 ) {
   let m = list.length(params)
-  let list_x = nx.to_list_1d(x)
-  let y_fit = list_x |> list.map(func(_, params)) |> nx.tensor
+  let y_fit = list.map(x, func(_, params)) |> nx.tensor
   case max_iterations {
     0 -> Error(NonConverged)
     iterations -> {
       let r = nx.subtract(y, y_fit)
       use j <- result.try(result.replace_error(
-        jacobian(list_x, y_fit, func, params, epsilon),
+        jacobian(x, y_fit, func, params, epsilon),
         JacobianTaskError,
       ))
 
@@ -116,9 +115,9 @@ fn do_levenberg_marquardt(
         |> list.map(fn(p) { p.0 +. p.1 })
 
       case delta_norm {
-        x if x <. tolerance -> Ok(new_params)
+        norm if norm <. tolerance -> Ok(new_params)
         _ -> {
-          let new_y_fit = list.map(list_x, func(_, new_params)) |> nx.tensor
+          let new_y_fit = list.map(x, func(_, new_params)) |> nx.tensor
           let new_r = nx.subtract(y, new_y_fit)
           let prev_error = nx.sum(nx.pow(r, 2.0)) |> nx.to_number
           let new_error = nx.sum(nx.pow(new_r, 2.0)) |> nx.to_number

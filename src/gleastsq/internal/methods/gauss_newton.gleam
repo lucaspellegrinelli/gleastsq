@@ -45,7 +45,7 @@ pub fn gauss_newton(
     Error(WrongParameters("x and y must have the same length")),
   )
 
-  let x = nx.tensor(x)
+  let x = nx.tensor(x) |> nx.to_list_1d
   let y = nx.tensor(y)
   let iter = option.unwrap(opts.iterations, 100)
   let eps = option.unwrap(opts.epsilon, 0.0001)
@@ -66,7 +66,7 @@ pub fn gauss_newton(
 }
 
 fn do_gauss_newton(
-  x: NxTensor,
+  x: List(Float),
   y: NxTensor,
   func: fn(Float, List(Float)) -> Float,
   params: List(Float),
@@ -76,14 +76,13 @@ fn do_gauss_newton(
   lambda_reg: Float,
 ) {
   let m = list.length(params)
-  let list_x = nx.to_list_1d(x)
-  let y_fit = list_x |> list.map(func(_, params)) |> nx.tensor
+  let y_fit = list.map(x, func(_, params)) |> nx.tensor
   case max_iterations {
     0 -> Error(NonConverged)
     iterations -> {
       let r = nx.subtract(y, y_fit)
       use j <- result.try(result.replace_error(
-        jacobian(list_x, y_fit, func, params, epsilon),
+        jacobian(x, y_fit, func, params, epsilon),
         JacobianTaskError,
       ))
 
