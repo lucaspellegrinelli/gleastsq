@@ -25,8 +25,9 @@ pub fn trust_region_reflective(
   let x = nx.tensor(x) |> nx.to_list_1d
   let y = nx.tensor(y)
   let iter = option.unwrap(opts.iterations, 100)
-  let eps = option.unwrap(opts.epsilon, 0.0001)
-  let tol = option.unwrap(opts.tolerance, 0.0001)
+  let eps = option.unwrap(opts.epsilon, 0.00001)
+  let tol = option.unwrap(opts.tolerance, 0.00001)
+  let reg = option.unwrap(opts.damping, 0.001)
   let delta = 1.0
 
   use fitted <- result.try(do_trust_region_reflective(
@@ -38,8 +39,13 @@ pub fn trust_region_reflective(
     eps,
     tol,
     delta,
+    reg,
   ))
   Ok(fitted)
+}
+
+fn ternary(cond: Bool, a: a, b: a) -> a {
+  bool.guard(cond, a, fn() { b })
 }
 
 fn dogleg(j: NxTensor, g: NxTensor, b: NxTensor, delta: Float) -> NxTensor {
@@ -96,9 +102,11 @@ fn do_trust_region_reflective(
   epsilon: Float,
   tolerance: Float,
   delta: Float,
+  lambda_reg: Float,
 ) {
   use <- bool.guard(iterations == 0, Error(NonConverged))
 
+  let m = list.length(params)
   let f = list.map(x, func(_, params)) |> nx.tensor
   let r = nx.subtract(f, y)
   use j <- result.try(result.replace_error(
@@ -107,23 +115,22 @@ fn do_trust_region_reflective(
   ))
 
   let jt = nx.transpose(j)
-  let b = nx.dot(jt, j)
+  let lambda_eye = nx.eye(m) |> nx.multiply(lambda_reg)
+  let b = nx.add(nx.dot(jt, j), lambda_eye)
   let g = nx.dot(jt, r)
-  let g_norm = nx.norm(g) |> nx.to_number
 
+  let g_norm = nx.norm(g) |> nx.to_number
   use <- bool.guard(g_norm <=. tolerance, Ok(params))
 
   let p = dogleg(j, g, b, delta)
-  let p_norm = nx.norm(p) |> nx.to_number
   let rho = rho(x, y, func, params, p, g)
 
-  let delta = case rho {
+  let p_norm = nx.norm(p) |> nx.to_number
+  let new_delta = case rho {
     x if x >. 0.75 -> float.max(delta, 3.0 *. p_norm)
     x if x <. 0.25 -> delta *. 0.25
     _ -> delta
   }
-
-  use <- bool.guard(rho <=. 0.0, Ok(params))
 
   let new_params =
     list.zip(params, nx.to_list_1d(p))
@@ -133,10 +140,11 @@ fn do_trust_region_reflective(
     x,
     y,
     func,
-    new_params,
+    ternary(rho >. 0.0, new_params, params),
     iterations - 1,
     epsilon,
     tolerance,
-    delta,
+    new_delta,
+    lambda_reg,
   )
 }
