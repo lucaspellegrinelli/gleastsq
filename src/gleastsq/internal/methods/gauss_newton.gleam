@@ -2,6 +2,7 @@ import gleam/bool
 import gleam/list
 import gleam/option
 import gleam/result
+import gleam_community/maths/metrics.{norm}
 import gleastsq/errors.{
   type FitErrors, JacobianTaskError, NonConverged, WrongParameters,
 }
@@ -90,14 +91,16 @@ fn do_gauss_newton(
       let eye = nx.eye(m) |> nx.multiply(lambda_reg)
       let jtj = nx.add(nx.dot(jt, j), eye)
       let jt_r = nx.dot(jt, r)
-      let delta = nx.solve(jtj, jt_r)
+      let delta = nx.solve(jtj, jt_r) |> nx.to_list_1d
+      let delta_norm = norm(delta, 2.0)
 
-      case nx.to_number(nx.norm(delta)) {
-        x if x <. tolerance -> Ok(params)
-        _ -> {
-          let new_params =
-            list.zip(params, nx.to_list_1d(delta))
-            |> list.map(fn(p) { p.0 +. p.1 })
+      let new_params =
+        list.zip(params, delta)
+        |> list.map(fn(p) { p.0 +. p.1 })
+
+      case delta_norm {
+        x if x <. tolerance -> Ok(new_params)
+        _ ->
           do_gauss_newton(
             x,
             y,
@@ -108,7 +111,6 @@ fn do_gauss_newton(
             tolerance,
             lambda_reg,
           )
-        }
       }
     }
   }

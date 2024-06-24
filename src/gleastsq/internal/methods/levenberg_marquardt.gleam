@@ -2,6 +2,7 @@ import gleam/bool
 import gleam/list
 import gleam/option
 import gleam/result
+import gleam_community/maths/metrics.{norm}
 import gleastsq/errors.{
   type FitErrors, JacobianTaskError, NonConverged, WrongParameters,
 }
@@ -107,16 +108,17 @@ fn do_levenberg_marquardt(
       let lambda_eye = nx.eye(m) |> nx.multiply(damping)
       let h_damped = nx.add(nx.dot(jt, j), lambda_eye)
       let g = nx.dot(jt, r)
-      let delta = nx.solve(h_damped, g)
+      let delta = nx.solve(h_damped, g) |> nx.to_list_1d
+      let delta_norm = norm(delta, 2.0)
 
       let new_params =
-        list.zip(params, nx.to_list_1d(delta))
+        list.zip(params, delta)
         |> list.map(fn(p) { p.0 +. p.1 })
 
-      case nx.to_number(nx.norm(delta)) {
+      case delta_norm {
         x if x <. tolerance -> Ok(new_params)
         _ -> {
-          let new_y_fit = list_x |> list.map(func(_, new_params)) |> nx.tensor
+          let new_y_fit = list.map(list_x, func(_, new_params)) |> nx.tensor
           let new_r = nx.subtract(y, new_y_fit)
           let prev_error = nx.sum(nx.pow(r, 2.0)) |> nx.to_number
           let new_error = nx.sum(nx.pow(new_r, 2.0)) |> nx.to_number
