@@ -50,25 +50,28 @@ fn ternary(cond: Bool, a: a, b: a) -> a {
 
 fn dogleg(j: NxTensor, g: NxTensor, b: NxTensor, delta: Float) -> NxTensor {
   let jt = nx.transpose(j)
-  let pu1 = nx.negate(nx.dot(g, g))
-  let pu2 = nx.dot(g, nx.dot(jt, nx.dot(j, g)))
-  let pu = nx.multiply_mat(nx.divide_mat(pu1, pu2), g)
-  let pu_norm = nx.norm(pu) |> nx.to_number
+  let jg = nx.dot(j, g)
+  let g_g = nx.dot(g, g)
+  let p_u_numerator = nx.negate(g_g)
+  let p_u_denominator = nx.dot(g, nx.dot(jt, jg))
+  let p_u = nx.multiply_mat(nx.divide_mat(p_u_numerator, p_u_denominator), g)
 
-  let pb = nx.negate(nx.solve(b, g))
-  let pb_norm = nx.norm(pb) |> nx.to_number
+  let p_b = nx.negate(nx.solve(b, g))
 
-  use <- bool.guard(pb_norm <=. delta, pb)
-  use <- bool.guard(pu_norm >=. delta, nx.multiply(pu, delta /. pu_norm))
+  let p_b_norm = nx.norm(p_b) |> nx.to_number
+  let p_u_norm = nx.norm(p_u) |> nx.to_number
 
-  let pbu = nx.subtract(pb, pu)
+  use <- bool.guard(p_b_norm <=. delta, p_b)
+  use <- bool.guard(p_u_norm >=. delta, nx.multiply(p_u, delta /. p_u_norm))
 
+  let p_b_u = nx.subtract(p_b, p_u)
   let assert Ok(delta_sq) = float.power(delta, 2.0)
-  let assert Ok(pu_norm_sq) = float.power(pu_norm, 2.0)
-  let assert Ok(d_pu_sqrt) = float.square_root(delta_sq -. pu_norm_sq)
-  let pc_factor = d_pu_sqrt /. nx.to_number(nx.norm(pbu))
-
-  nx.add(pu, nx.multiply(pbu, pc_factor))
+  let assert Ok(u_norm_sq) = float.power(p_u_norm, 2.0)
+  let assert Ok(d_pu_sqrt) = float.square_root(delta_sq -. u_norm_sq)
+  let pb_u_norm = nx.norm(p_b_u) |> nx.to_number
+  let pc_factor = d_pu_sqrt /. pb_u_norm
+  let p_c = nx.add(p_u, nx.multiply(p_b_u, pc_factor))
+  p_c
 }
 
 pub fn rho(
@@ -80,16 +83,23 @@ pub fn rho(
   g: NxTensor,
 ) -> Float {
   let fx = list.map(x, func(_, params)) |> nx.tensor
-  let xp = nx.add(nx.tensor(params), p) |> nx.to_list_1d
-  let fxp = list.map(x, func(_, xp)) |> nx.tensor
 
-  let fx_r = nx.pow(nx.subtract(fx, y), 2.0)
-  let fxp_r = nx.pow(nx.subtract(fxp, y), 2.0)
-  let mse = nx.sum(nx.subtract(fx_r, fxp_r)) |> nx.to_number
-  let actual_reduction = 0.5 *. mse
+  let offset_params =
+    list.zip(params, nx.to_list_1d(p))
+    |> list.map(fn(p) { p.0 +. p.1 })
 
-  let gp = nx.dot(g, p) |> nx.to_number
-  let predicted_reduction = -0.5 *. gp
+  let fx_p = list.map(x, func(_, offset_params)) |> nx.tensor
+
+  let fx_diff = nx.pow(nx.subtract(fx, y), 2.0)
+  let fxp_diff = nx.pow(nx.subtract(fx_p, y), 2.0)
+
+  let actual_reduction_sum =
+    nx.sum(nx.subtract(fx_diff, fxp_diff)) |> nx.to_number
+  let actual_reduction = 0.5 *. actual_reduction_sum
+
+  let g_dot_p = nx.dot(g, p) |> nx.to_number
+  let predicted_reduction = -0.5 *. g_dot_p
+
   actual_reduction /. predicted_reduction
 }
 
@@ -105,8 +115,8 @@ fn do_trust_region_reflective(
   lambda_reg: Float,
 ) {
   use <- bool.guard(iterations == 0, Error(NonConverged))
-
   let m = list.length(params)
+
   let f = list.map(x, func(_, params)) |> nx.tensor
   let r = nx.subtract(f, y)
   use j <- result.try(result.replace_error(
@@ -114,20 +124,19 @@ fn do_trust_region_reflective(
     JacobianTaskError,
   ))
 
-  let jt = nx.transpose(j)
   let lambda_eye = nx.eye(m) |> nx.multiply(lambda_reg)
+  let jt = nx.transpose(j)
   let b = nx.add(nx.dot(jt, j), lambda_eye)
   let g = nx.dot(jt, r)
 
   let g_norm = nx.norm(g) |> nx.to_number
-  use <- bool.guard(g_norm <=. tolerance, Ok(params))
+  use <- bool.guard(g_norm <. tolerance, Ok(params))
 
   let p = dogleg(j, g, b, delta)
   let rho = rho(x, y, func, params, p, g)
 
-  let p_norm = nx.norm(p) |> nx.to_number
   let new_delta = case rho {
-    x if x >. 0.75 -> float.max(delta, 3.0 *. p_norm)
+    x if x >. 0.75 -> float.max(delta, 3.0 *. nx.to_number(nx.norm(p)))
     x if x <. 0.25 -> delta *. 0.25
     _ -> delta
   }
