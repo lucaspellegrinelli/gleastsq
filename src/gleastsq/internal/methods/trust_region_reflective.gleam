@@ -3,7 +3,6 @@ import gleam/float
 import gleam/list
 import gleam/option
 import gleam/result
-import gleam_community/maths/metrics.{norm}
 import gleastsq/errors.{
   type FitErrors, JacobianTaskError, NonConverged, WrongParameters,
 }
@@ -43,26 +42,49 @@ pub fn trust_region_reflective(
   Ok(fitted)
 }
 
-fn ternary(cond: Bool, a: a, b: a) -> a {
-  bool.guard(cond, a, fn() { b })
-}
-
-fn dogleg(b: NxTensor, g: NxTensor, delta: Float) -> NxTensor {
-  let gt = nx.transpose(g)
-  let pu_1 = nx.dot(gt, g) |> nx.negate
-  let pu_2 = nx.dot(nx.dot(gt, b), g)
-  let pu = nx.divide_mat(pu_1, pu_2) |> nx.multiply_mat(g)
+fn dogleg(j: NxTensor, g: NxTensor, b: NxTensor, delta: Float) -> NxTensor {
+  let jt = nx.transpose(j)
+  let pu1 = nx.negate(nx.dot(g, g))
+  let pu2 = nx.dot(g, nx.dot(jt, nx.dot(j, g)))
+  let pu = nx.multiply_mat(nx.divide_mat(pu1, pu2), g)
   let pu_norm = nx.norm(pu) |> nx.to_number
+
+  let pb = nx.negate(nx.solve(b, g))
+  let pb_norm = nx.norm(pb) |> nx.to_number
+
+  use <- bool.guard(pb_norm <=. delta, pb)
   use <- bool.guard(pu_norm >=. delta, nx.multiply(pu, delta /. pu_norm))
 
-  let pb = nx.solve(b, g) |> nx.negate
-  let pb_norm = nx.norm(pb) |> nx.to_number
-  use <- bool.guard(pb_norm <=. delta, pb)
+  let pbu = nx.subtract(pb, pu)
 
-  let pb_pu = nx.subtract(pb, pu)
-  let pb_pu_norm = nx.norm(pb_pu) |> nx.to_number
-  let pu_pb = nx.multiply(pb_pu, { delta -. pu_norm } /. pb_pu_norm)
-  nx.add(pu, pu_pb)
+  let assert Ok(delta_sq) = float.power(delta, 2.0)
+  let assert Ok(pu_norm_sq) = float.power(pu_norm, 2.0)
+  let assert Ok(d_pu_sqrt) = float.square_root(delta_sq -. pu_norm_sq)
+  let pc_factor = d_pu_sqrt /. nx.to_number(nx.norm(pbu))
+
+  nx.add(pu, nx.multiply(pbu, pc_factor))
+}
+
+pub fn rho(
+  x: List(Float),
+  y: NxTensor,
+  func: fn(Float, List(Float)) -> Float,
+  params: List(Float),
+  p: NxTensor,
+  g: NxTensor,
+) -> Float {
+  let fx = list.map(x, func(_, params)) |> nx.tensor
+  let xp = nx.add(nx.tensor(params), p) |> nx.to_list_1d
+  let fxp = list.map(x, func(_, xp)) |> nx.tensor
+
+  let fx_r = nx.pow(nx.subtract(fx, y), 2.0)
+  let fxp_r = nx.pow(nx.subtract(fxp, y), 2.0)
+  let mse = nx.sum(nx.subtract(fx_r, fxp_r)) |> nx.to_number
+  let actual_reduction = 0.5 *. mse
+
+  let gp = nx.dot(g, p) |> nx.to_number
+  let predicted_reduction = -0.5 *. gp
+  actual_reduction /. predicted_reduction
 }
 
 fn do_trust_region_reflective(
@@ -76,69 +98,42 @@ fn do_trust_region_reflective(
   delta: Float,
 ) {
   use <- bool.guard(iterations == 0, Error(NonConverged))
-  let tp = nx.tensor(params)
 
-  let list_f = list.map(x, func(_, params))
-  let f_norm = norm(list_f, 2.0)
-  let f = list_f |> nx.tensor
-
+  let f = list.map(x, func(_, params)) |> nx.tensor
+  let r = nx.subtract(f, y)
   use j <- result.try(result.replace_error(
     jacobian(x, f, func, params, epsilon),
     JacobianTaskError,
   ))
 
   let jt = nx.transpose(j)
-  let g = nx.dot(jt, f)
   let b = nx.dot(jt, j)
-  let ngt = nx.negate(nx.transpose(g))
+  let g = nx.dot(jt, r)
+  let g_norm = nx.norm(g) |> nx.to_number
 
-  let pb = dogleg(b, g, delta)
-  let pbt = nx.transpose(pb)
+  use <- bool.guard(g_norm <=. tolerance, Ok(params))
 
-  let p = nx.add(tp, pb) |> nx.to_list_1d
-  let fp_norm = list.map(x, func(_, p)) |> norm(2.0)
+  let p = dogleg(j, g, b, delta)
+  let p_norm = nx.norm(p) |> nx.to_number
+  let rho = rho(x, y, func, params, p, g)
 
-  let rho1 = nx.dot(ngt, pb) |> nx.to_number
-  let rho2 = nx.dot(nx.dot(pbt, b), pb) |> nx.to_number
-  let rho = { f_norm -. fp_norm } /. { rho1 -. 0.5 *. rho2 }
+  let delta = case rho {
+    x if x >. 0.75 -> float.max(delta, 3.0 *. p_norm)
+    x if x <. 0.25 -> delta *. 0.25
+    _ -> delta
+  }
 
-  use <- bool.guard(
-    rho >. 0.75,
-    do_trust_region_reflective(
-      x,
-      y,
-      func,
-      p,
-      iterations - 1,
-      epsilon,
-      tolerance,
-      float.min(2.0 *. delta, 1.0),
-    ),
-  )
+  use <- bool.guard(rho <=. 0.0, Ok(params))
 
-  use <- bool.guard(
-    rho <. 0.25,
-    do_trust_region_reflective(
-      x,
-      y,
-      func,
-      p,
-      iterations - 1,
-      epsilon,
-      tolerance,
-      delta /. 2.0,
-    ),
-  )
-
-  let stop_crit = tolerance *. { norm(p, 2.0) +. tolerance }
-  let pb_norm = norm(nx.to_list_1d(pb), 2.0)
-  use <- bool.guard(pb_norm <. stop_crit, Ok(p))
+  let new_params =
+    list.zip(params, nx.to_list_1d(p))
+    |> list.map(fn(p) { p.0 +. p.1 })
 
   do_trust_region_reflective(
     x,
     y,
     func,
-    p,
+    new_params,
     iterations - 1,
     epsilon,
     tolerance,

@@ -1,3 +1,4 @@
+import gleam/io
 import gleastsq
 import gleeunit/should
 import utils/curves.{double_gaussian, exponential, gaussian, parabola}
