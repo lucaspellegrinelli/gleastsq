@@ -68,12 +68,13 @@ fn do_gauss_newton(
   lambda_reg: Float,
 ) -> Result(NxTensor, FitErrors) {
   let m = nx.shape(params).0
+  let y_fit = nx.map(x, func(_, params))
   case max_iterations {
     0 -> Error(NonConverged)
     iterations -> {
-      let r = x |> nx.map(func(_, params)) |> nx.subtract(y, _)
+      let r = nx.subtract(y, y_fit)
       use j <- result.try(result.replace_error(
-        jacobian(x, func, params, epsilon),
+        jacobian(x, y_fit, func, params, epsilon),
         JacobianTaskError,
       ))
 
