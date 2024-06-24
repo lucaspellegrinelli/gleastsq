@@ -25,9 +25,9 @@ pub fn trust_region_reflective(
   let x = nx.tensor(x) |> nx.to_list_1d
   let y = nx.tensor(y)
   let iter = option.unwrap(opts.iterations, 100)
-  let eps = option.unwrap(opts.epsilon, 0.00001)
+  let eps = option.unwrap(opts.epsilon, 0.0001)
   let tol = option.unwrap(opts.tolerance, 0.00001)
-  let reg = option.unwrap(opts.damping, 0.001)
+  let reg = option.unwrap(opts.damping, 0.0001)
   let delta = 1.0
 
   use fitted <- result.try(do_trust_region_reflective(
@@ -135,9 +135,12 @@ fn do_trust_region_reflective(
   let p = dogleg(j, g, b, delta)
   let rho = rho(x, y, func, params, p, g)
 
+  let p_norm = nx.norm(p) |> nx.to_number
+  use <- bool.guard(p_norm <. tolerance, Ok(params))
+
   let new_delta = case rho {
-    x if x >. 0.75 -> float.max(delta, 3.0 *. nx.to_number(nx.norm(p)))
-    x if x <. 0.25 -> delta *. 0.25
+    x if x >. 0.75 -> float.max(delta, 2.0 *. nx.to_number(nx.norm(p)))
+    x if x <. 0.25 -> delta *. 0.5
     _ -> delta
   }
 
