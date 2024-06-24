@@ -8,23 +8,23 @@ library from Elixir under the hood to perform matrix operations.
 
 ## Which method should I use?
 
-The library provides three functions for curve fitting: `least_squares`, `gauss_newton` and `levenberg_marquardt`.
+The library provides four functions for curve fitting: `least_squares`, `gauss_newton`, `levenberg_marquardt` and `trust_region_reflective`.
 
 ### Least Squares
 
 The `least_squares` function is just an alias for the `levenberg_marquardt` function.
 
-### Gauss-Newton
+## Levenberg-Marquardt
 
-The `gauss_newton` function is best for least squares problems with good initial guesses and small residuals.
-It is less computationally intensive and thus can be faster than the Levenberg-Marquardt method but can be unstable
-with poor initial guesses or large residuals.
+Ideal for non-linear least squares problems, particularly when the initial guess is far from the solution. It combines the benefits of the Gauss-Newton method and gradient descent, making it robust and efficient for various scenarios. However, it requires careful tuning of the damping parameter to balance convergence speed and stability.
 
-### Levenberg-Marquardt
+## Trust-Region Reflective
 
-The `levenberg_marquardt` function is robust for nonlinear least squares problems, handling large residuals and poor
-initial guesses effectively. It is more computationally intensive but provides reliable convergence for a wider range
-of problems, especially in challenging or ill-conditioned cases.
+Best suited for large-scale problems or those with constraints, this method ensures that each iteration stays within a predefined "trust region," preventing large, unstable steps. It is reliable and effective for challenging optimization problems but can be computationally intensive.
+
+## Gauss-Newton
+
+Efficient for problems where residuals are small and the initial guess is close to the true solution. It approximates the Hessian matrix, leading to faster convergence for well-behaved problems. However, it may struggle with highly non-linear problems or poor initial guesses, as it lacks the robustness of the Levenberg-Marquardt and trust-region reflective methods.
 
 ## Installation
 

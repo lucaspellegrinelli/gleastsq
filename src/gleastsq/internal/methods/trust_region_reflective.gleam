@@ -10,6 +10,29 @@ import gleastsq/internal/jacobian.{jacobian}
 import gleastsq/internal/nx.{type NxTensor}
 import gleastsq/internal/params.{type FitParams}
 
+/// The `trust_region_reflective` function performs the Trust Region Reflective optimization algorithm.
+/// It is used to solve non-linear least squares problems. This function takes as input the data points,
+/// the model function, and several optional parameters to control the optimization process.
+///
+/// # Parameters
+/// - `x` (List(Float))
+///     A list of x-values of the data points.
+/// - `y` (List(Float))
+///     A list of y-values of the data points.
+/// - `func` (fn(Float, List(Float)) -> Float)
+///     The model function that takes an x-value and a list of parameters, and returns the corresponding y-value.
+/// - `initial_params` (List(Float))
+///     A list of initial guesses for the parameters of the model function.
+/// - `opts` (FitParams)
+///     A record with the following fields:
+///     - `iterations` (Option(Int))
+///         The maximum number of iterations to perform. Default is 100.
+///     - `epsilon` (Option(Float))
+///         The step size used to calculate the numerical gradient. Default is 0.0001.
+///     - `tolerance` (Option(Float))
+///         The tolerance used to stop the optimization. Default is 0.00001.
+///     - `damping` (Option(Float))
+///         The damping factor used to stabilize the optimization. Default is 0.0001.
 pub fn trust_region_reflective(
   x: List(Float),
   y: List(Float),
