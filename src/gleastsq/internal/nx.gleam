@@ -1,7 +1,5 @@
-import gleam/dynamic.{type Dynamic}
-
 pub type NxTensor =
-  Dynamic
+  Nil
 
 pub type NxOpts {
   Axis(Int)
