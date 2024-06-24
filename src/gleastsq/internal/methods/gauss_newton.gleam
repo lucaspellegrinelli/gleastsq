@@ -83,7 +83,7 @@ fn do_gauss_newton(
     iterations -> {
       let r = nx.subtract(y, y_fit)
       use j <- result.try(result.replace_error(
-        jacobian(nx.to_list_1d(x), y_fit, func, params, epsilon),
+        jacobian(list_x, y_fit, func, params, epsilon),
         JacobianTaskError,
       ))
 
