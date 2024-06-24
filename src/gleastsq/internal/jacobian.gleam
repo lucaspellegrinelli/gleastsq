@@ -11,15 +11,15 @@ pub fn jacobian(
   x: List(Float),
   y_fit: NxTensor,
   func: fn(Float, List(Float)) -> Float,
-  params: NxTensor,
+  params: List(Float),
   epsilon: Float,
 ) {
-  let #(n) = nx.shape(params)
+  let n = list.length(params)
   let jac_result =
     list.range(0, n - 1)
     |> list.map(fn(i) {
       task.async(fn() {
-        compute_jacobian_col(x, y_fit, func, params, epsilon, n, i)
+        compute_jacobian_col(x, y_fit, func, params, epsilon, i)
       })
     })
     |> list.map(task.try_await_forever(_))
@@ -35,9 +35,8 @@ fn compute_jacobian_col(
   x: List(Float),
   y_fit: NxTensor,
   func: fn(Float, List(Float)) -> Float,
-  params: NxTensor,
+  params: List(Float),
   epsilon: Float,
-  n: Int,
   i: Int,
 ) -> NxTensor {
   // Originally this was implemented by calculating a "up_f" and a "down_f" and then
@@ -46,9 +45,14 @@ fn compute_jacobian_col(
   // every Elixir Nx's maps (because of gleastsq/internal/nx.{convert_func_params}),
   // it was decided to calculate the jacobian column as (up_f - y_fit) / epsilon where
   // "y_fit" is the result of the function with the original parameters.
-  let zeros_n = nx.broadcast(0.0, #(n))
-  let mask = nx.indexed_put(zeros_n, nx.tensor([i]), epsilon)
-  let up_params = nx.add(params, mask)
-  let up_f = list.map(x, func(_, nx.to_list_1d(up_params))) |> nx.tensor
+
+  let up_params = params |> list.index_map(fn(v, idx) {
+    case idx == i {
+      True -> v +. epsilon
+      False -> v
+    }
+  })
+
+  let up_f = list.map(x, func(_, up_params)) |> nx.tensor
   nx.new_axis(nx.divide(nx.subtract(up_f, y_fit), epsilon), 1)
 }

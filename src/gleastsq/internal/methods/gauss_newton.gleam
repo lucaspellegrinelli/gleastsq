@@ -44,31 +44,39 @@ pub fn gauss_newton(
     Error(WrongParameters("x and y must have the same length")),
   )
 
-  let p = nx.tensor(initial_params)
   let x = nx.tensor(x)
   let y = nx.tensor(y)
   let iter = option.unwrap(opts.iterations, 100)
   let eps = option.unwrap(opts.epsilon, 0.0001)
   let tol = option.unwrap(opts.tolerance, 0.0001)
-  let reg = option.unwrap(opts.damping, 0.0001)
+  let reg = option.unwrap(opts.damping, 0.001)
 
-  use fitted <- result.try(do_gauss_newton(x, y, func, p, iter, eps, tol, reg))
-  Ok(fitted |> nx.to_list_1d)
+  use fitted <- result.try(do_gauss_newton(
+    x,
+    y,
+    func,
+    initial_params,
+    iter,
+    eps,
+    tol,
+    reg,
+  ))
+  Ok(fitted)
 }
 
 fn do_gauss_newton(
   x: NxTensor,
   y: NxTensor,
   func: fn(Float, List(Float)) -> Float,
-  params: NxTensor,
+  params: List(Float),
   max_iterations: Int,
   epsilon: Float,
   tolerance: Float,
   lambda_reg: Float,
-) -> Result(NxTensor, FitErrors) {
-  let m = nx.shape(params).0
-  let y_fit =
-    x |> nx.to_list_1d |> list.map(func(_, nx.to_list_1d(params))) |> nx.tensor
+) {
+  let m = list.length(params)
+  let list_x = nx.to_list_1d(x)
+  let y_fit = list_x |> list.map(func(_, params)) |> nx.tensor
   case max_iterations {
     0 -> Error(NonConverged)
     iterations -> {
@@ -86,17 +94,21 @@ fn do_gauss_newton(
 
       case nx.to_number(nx.norm(delta)) {
         x if x <. tolerance -> Ok(params)
-        _ ->
+        _ -> {
+          let new_params =
+            list.zip(params, nx.to_list_1d(delta))
+            |> list.map(fn(p) { p.0 +. p.1 })
           do_gauss_newton(
             x,
             y,
             func,
-            nx.add(params, delta),
+            new_params,
             iterations - 1,
             epsilon,
             tolerance,
             lambda_reg,
           )
+        }
       }
     }
   }
