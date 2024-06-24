@@ -32,7 +32,7 @@ import gleastsq/internal/params.{type FitParams}
 ///     - `tolerance` (Option(Float))
 ///         The tolerance used to stop the optimization. Default is 0.0001.
 ///     - `damping` (Option(Float))
-///         The damping factor used to stabilize the optimization. Default is 0.0001.
+///         The damping factor used to stabilize the optimization. Default is 0.001.
 pub fn gauss_newton(
   x: List(Float),
   y: List(Float),
