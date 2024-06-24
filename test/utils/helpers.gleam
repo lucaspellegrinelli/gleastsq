@@ -1,7 +1,7 @@
 import gleam/float
 import gleam/int
 import gleam/list
-import gleam_community/maths/metrics.{mean}
+import gleam_community/maths/piecewise
 import gleastsq/errors.{type FitErrors}
 import utils/sampling.{sample_around}
 
@@ -41,14 +41,22 @@ pub fn are_fits_equivalent(
   func: fn(Float, List(Float)) -> Float,
   params_a: List(Float),
   params_b: List(Float),
-  tol tol: Float,
 ) -> Bool {
   let y_a = list.map(x, func(_, params_a))
   let y_b = list.map(x, func(_, params_b))
-  let assert Ok(diff) =
-    list.zip(y_a, y_b)
-    |> list.map(fn(p) { float.absolute_value(p.0 -. p.1) })
-    |> mean
 
-  diff <. tol
+  let assert Ok(#(min_y, max_y)) = piecewise.extrema(y_a, float.compare)
+  let range = max_y -. min_y
+
+  let sum_of_squares =
+    list.zip(y_a, y_b)
+    |> list.fold(0.0, fn(acc, p) {
+      let diff = p.0 -. p.1
+      acc +. diff *. diff
+    })
+
+  let mse = sum_of_squares /. int.to_float(list.length(x))
+  let assert Ok(rmse) = float.square_root(mse)
+  let nrmse = rmse /. range
+  nrmse <. 0.05
 }
