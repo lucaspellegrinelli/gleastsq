@@ -22,6 +22,8 @@ Ideal for non-linear least squares problems, particularly when the initial guess
 
 Best suited for large-scale problems or those with constraints, this method ensures that each iteration stays within a predefined "trust region," preventing large, unstable steps. It is reliable and effective for challenging optimization problems but can be computationally intensive.
 
+* Constrained parameters is not supported yet.
+
 ## Gauss-Newton
 
 Efficient for problems where residuals are small and the initial guess is close to the true solution. It approximates the Hessian matrix, leading to faster convergence for well-behaved problems. However, it may struggle with highly non-linear problems or poor initial guesses, as it lacks the robustness of the Levenberg-Marquardt and trust-region reflective methods.
