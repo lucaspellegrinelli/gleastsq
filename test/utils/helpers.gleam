@@ -1,6 +1,7 @@
 import gleam/float
 import gleam/int
 import gleam/list
+import gleam_community/maths/metrics.{mean}
 import gleam_community/maths/piecewise
 import gleastsq/errors.{type FitErrors}
 import utils/sampling.{sample_around}
@@ -32,8 +33,7 @@ pub fn fit_to_curve(
     False -> list.map(x, func(_, params))
   }
   let initial = list.repeat(1.0, list.length(params))
-  let assert Ok(result) = optimizer(x, y, func, initial)
-  result
+  optimizer(x, y, func, initial)
 }
 
 pub fn are_fits_equivalent(
@@ -48,15 +48,11 @@ pub fn are_fits_equivalent(
   let assert Ok(#(min_y, max_y)) = piecewise.extrema(y_a, float.compare)
   let range = max_y -. min_y
 
-  let sum_of_squares =
+  let assert Ok(mae) =
     list.zip(y_a, y_b)
-    |> list.fold(0.0, fn(acc, p) {
-      let diff = p.0 -. p.1
-      acc +. diff *. diff
-    })
+    |> list.map(fn(p) { float.absolute_value(p.0 -. p.1) })
+    |> mean()
 
-  let mse = sum_of_squares /. int.to_float(list.length(x))
-  let assert Ok(rmse) = float.square_root(mse)
-  let nrmse = rmse /. range
-  nrmse <. 0.05
+  let nmae = mae /. range
+  nmae <. 0.025
 }
