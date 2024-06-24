@@ -154,7 +154,7 @@ pub fn gauss_newton(
 ///     The available options are:
 ///     - `Iterations(Int)`: The maximum number of iterations to perform. Default is 100.
 ///     - `Epsilon(Float)`: A small value to change x when calculating the derivatives for the function. Default is 0.0001.
-///     - `Tolerance(Float)`: The convergence tolerance. Default is 0.0001.
+///     - `Tolerance(Float)`: The convergence tolerance. Default is 0.00001.
 ///     - `Damping(Float)`: The value of the damping parameter. Default is 0.001.
 ///
 /// # Example
