@@ -200,7 +200,7 @@ fn do_trust_region_reflective(
   let b = nx.add(nx.dot(jt, j), lambda_eye)
   let g = nx.dot(jt, r)
 
-  let g_norm = nx.norm(g) |> nx.to_number
+  let g_norm = nx.reduce_max(nx.abs(g)) |> nx.to_number
   use <- bool.guard(g_norm <. tolerance, Ok(params))
 
   use non_bounded_p <- result.try(dogleg(j, g, b, delta))
