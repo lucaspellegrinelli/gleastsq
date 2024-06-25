@@ -165,6 +165,7 @@ pub fn gauss_newton(
 /// # Example
 /// ```gleam
 /// import gleam/io
+/// import gleam/option.{Some}
 /// import gleastsq
 /// import gleastsq/options.{Iterations, Tolerance}
 ///
