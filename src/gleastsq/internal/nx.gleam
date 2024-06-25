@@ -80,11 +80,11 @@ pub fn norm(a: NxTensor) -> NxTensor
 pub fn unsafe_solve(a: NxTensor, b: NxTensor) -> NxTensor
 
 pub fn solve(a: NxTensor, b: NxTensor) -> Result(NxTensor, String) {
-  case exception.rescue(fn() { unsafe_solve(a, b) }) {
-    Ok(r) -> Ok(r)
-    Error(exception.Errored(e)) -> {
+  use error <- result.map_error(exception.rescue(fn() { unsafe_solve(a, b) }))
+  case error {
+    exception.Errored(e) -> {
       let error_msg = e |> dynamic.field(named: Message, of: dynamic.string)
-      Error(result.unwrap(error_msg, "Error solving matrix"))
+      result.unwrap(error_msg, "Error solving matrix")
     }
     _ -> panic as "Unexpected error while solving matrix"
   }
