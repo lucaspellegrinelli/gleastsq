@@ -4,7 +4,7 @@ import gleam/option
 import gleam/result
 import gleam_community/maths/metrics.{norm}
 import gleastsq/errors.{
-  type FitErrors, JacobianTaskError, NonConverged, WrongParameters,
+  type FitErrors, JacobianTaskError, NonConverged, SolveError, WrongParameters,
 }
 import gleastsq/internal/jacobian.{jacobian}
 import gleastsq/internal/nx.{type NxTensor}
@@ -52,17 +52,7 @@ pub fn gauss_newton(
   let tol = option.unwrap(opts.tolerance, 0.0001)
   let reg = option.unwrap(opts.damping, 0.001)
 
-  use fitted <- result.try(do_gauss_newton(
-    x,
-    y,
-    func,
-    initial_params,
-    iter,
-    eps,
-    tol,
-    reg,
-  ))
-  Ok(fitted)
+  do_gauss_newton(x, y, func, initial_params, iter, eps, tol, reg)
 }
 
 fn do_gauss_newton(
@@ -89,7 +79,12 @@ fn do_gauss_newton(
   let eye = nx.eye(m) |> nx.multiply(lambda_reg)
   let jtj = nx.add(nx.dot(jt, j), eye)
   let jt_r = nx.dot(jt, r)
-  let delta = nx.solve(jtj, jt_r) |> nx.to_list_1d
+
+  use delta_solve <- result.try(result.replace_error(
+    nx.solve(jtj, jt_r),
+    SolveError,
+  ))
+  let delta = delta_solve |> nx.to_list_1d
   let delta_norm = norm(delta, 2.0)
 
   let new_params =

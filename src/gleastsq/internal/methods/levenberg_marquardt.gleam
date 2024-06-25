@@ -4,7 +4,7 @@ import gleam/option
 import gleam/result
 import gleam_community/maths/metrics.{norm}
 import gleastsq/errors.{
-  type FitErrors, JacobianTaskError, NonConverged, WrongParameters,
+  type FitErrors, JacobianTaskError, NonConverged, SolveError, WrongParameters,
 }
 import gleastsq/internal/jacobian.{jacobian}
 import gleastsq/internal/nx.{type NxTensor}
@@ -58,7 +58,7 @@ pub fn levenberg_marquardt(
   let damping_inc = option.unwrap(opts.damping_increase, 10.0)
   let damping_dec = option.unwrap(opts.damping_decrease, 0.1)
 
-  use fitted <- result.try(do_levenberg_marquardt(
+  do_levenberg_marquardt(
     x,
     y,
     func,
@@ -69,8 +69,7 @@ pub fn levenberg_marquardt(
     reg,
     damping_inc,
     damping_dec,
-  ))
-  Ok(fitted)
+  )
 }
 
 fn ternary(cond: Bool, a: a, b: a) -> a {
@@ -103,7 +102,12 @@ fn do_levenberg_marquardt(
   let lambda_eye = nx.eye(m) |> nx.multiply(damping)
   let h_damped = nx.add(nx.dot(jt, j), lambda_eye)
   let g = nx.dot(jt, r)
-  let delta = nx.solve(h_damped, g) |> nx.to_list_1d
+
+  use delta_solve <- result.try(result.replace_error(
+    nx.solve(h_damped, g),
+    SolveError,
+  ))
+  let delta = delta_solve |> nx.to_list_1d
   let delta_norm = norm(delta, 2.0)
 
   let new_params =

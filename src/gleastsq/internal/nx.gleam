@@ -53,8 +53,8 @@ pub fn to_list_1d(a: NxTensor) -> List(Float)
 @external(erlang, "Elixir.Nx", "to_number")
 pub fn to_number(a: NxTensor) -> Float
 
-@external(erlang, "Elixir.Nx.LinAlg", "solve")
-pub fn solve(a: NxTensor, b: NxTensor) -> NxTensor
+@external(erlang, "Elixir.NxBindings", "safe_solve")
+pub fn solve(a: NxTensor, b: NxTensor) -> Result(NxTensor, String)
 
 @external(erlang, "Elixir.Nx.LinAlg", "norm")
 pub fn norm(a: NxTensor) -> NxTensor

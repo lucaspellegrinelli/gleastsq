@@ -4,7 +4,7 @@ import gleam/list
 import gleam/option.{type Option}
 import gleam/result
 import gleastsq/errors.{
-  type FitErrors, JacobianTaskError, NonConverged, WrongParameters,
+  type FitErrors, JacobianTaskError, NonConverged, SolveError, WrongParameters,
 }
 import gleastsq/internal/jacobian.{jacobian}
 import gleastsq/internal/nx.{type NxTensor}
@@ -96,40 +96,33 @@ pub fn trust_region_reflective(
     |> list.zip(upper_bounds)
     |> list.map(fn(p) { float.min(p.0, p.1) })
 
-  use fitted <- result.try(do_trust_region_reflective(
-    x,
-    y,
-    func,
-    p,
-    lb,
-    ub,
-    iter,
-    eps,
-    tol,
-    delta,
-    reg,
-  ))
-  Ok(fitted)
+  do_trust_region_reflective(x, y, func, p, lb, ub, iter, eps, tol, delta, reg)
 }
 
 fn ternary(cond: Bool, a: a, b: a) -> a {
   bool.guard(cond, a, fn() { b })
 }
 
-fn dogleg(j: NxTensor, g: NxTensor, b: NxTensor, delta: Float) -> NxTensor {
+fn dogleg(
+  j: NxTensor,
+  g: NxTensor,
+  b: NxTensor,
+  delta: Float,
+) -> Result(NxTensor, FitErrors) {
   let jt = nx.transpose(j)
   let jg = nx.dot(j, g)
   let p_u_numerator = nx.negate(nx.dot(g, g))
   let p_u_denominator = nx.dot(g, nx.dot(jt, jg))
   let p_u = nx.multiply_mat(nx.divide_mat(p_u_numerator, p_u_denominator), g)
 
-  let p_b = nx.negate(nx.solve(b, g))
+  use bg_solve <- result.try(result.replace_error(nx.solve(b, g), SolveError))
+  let p_b = nx.negate(bg_solve)
 
   let p_b_norm = nx.norm(p_b) |> nx.to_number
   let p_u_norm = nx.norm(p_u) |> nx.to_number
 
-  use <- bool.guard(p_b_norm <=. delta, p_b)
-  use <- bool.guard(p_u_norm >=. delta, nx.multiply(p_u, delta /. p_u_norm))
+  use <- bool.guard(p_b_norm <=. delta, Ok(p_b))
+  use <- bool.guard(p_u_norm >=. delta, Ok(nx.multiply(p_u, delta /. p_u_norm)))
 
   let p_b_u = nx.subtract(p_b, p_u)
   let assert Ok(delta_sq) = float.power(delta, 2.0)
@@ -138,7 +131,7 @@ fn dogleg(j: NxTensor, g: NxTensor, b: NxTensor, delta: Float) -> NxTensor {
   let pb_u_norm = nx.norm(p_b_u) |> nx.to_number
   let pc_factor = d_pu_sqrt /. pb_u_norm
   let p_c = nx.add(p_u, nx.multiply(p_b_u, pc_factor))
-  p_c
+  Ok(p_c)
 }
 
 fn dogleg_impose_bounds(
@@ -210,9 +203,14 @@ fn do_trust_region_reflective(
   let g_norm = nx.norm(g) |> nx.to_number
   use <- bool.guard(g_norm <. tolerance, Ok(params))
 
+  use non_bounded_p <- result.try(dogleg(j, g, b, delta))
   let p =
-    dogleg(j, g, b, delta)
-    |> dogleg_impose_bounds(nx.tensor(params), lower_bounds, upper_bounds)
+    dogleg_impose_bounds(
+      non_bounded_p,
+      nx.tensor(params),
+      lower_bounds,
+      upper_bounds,
+    )
   let rho = rho(x, y, func, params, p, g)
 
   let p_norm = nx.norm(p) |> nx.to_number
