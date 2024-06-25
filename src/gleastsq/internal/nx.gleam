@@ -89,14 +89,11 @@ pub fn concatenate(a: List(NxTensor), opts opts: List(NxOpts)) -> NxTensor
 pub fn solve(a: NxTensor, b: NxTensor) -> Result(NxTensor, String) {
   case exception.rescue(fn() { unsafe_solve(a, b) }) {
     Ok(r) -> Ok(r)
-    Error(e) ->
-      case e {
-        exception.Errored(e) -> {
-          let error_msg = e |> dynamic.field(named: Message, of: dynamic.string)
-          Error(result.unwrap(error_msg, "Error solving matrix"))
-        }
-        _ -> panic as "Unexpected error while solving matrix"
-      }
+    Error(exception.Errored(e)) -> {
+      let error_msg = e |> dynamic.field(named: Message, of: dynamic.string)
+      Error(result.unwrap(error_msg, "Error solving matrix"))
+    }
+    _ -> panic as "Unexpected error while solving matrix"
   }
 }
 
