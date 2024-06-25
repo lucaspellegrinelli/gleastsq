@@ -1,3 +1,4 @@
+import gleam/option.{type Option}
 import gleastsq/internal/methods/gauss_newton as gn
 import gleastsq/internal/methods/levenberg_marquardt as lm
 import gleastsq/internal/methods/trust_region_reflective as trr
@@ -148,7 +149,11 @@ pub fn gauss_newton(
 /// - `func` (fn(Float, List(Float)) -> Float)
 ///     The model function that takes an x-value and a list of parameters, and returns the corresponding y-value.
 /// - `initial_params` (List(Float))
-///     A list of initial guesses for the parameters of the model function.
+///     A list of initial guesses for the parameters of the model function. Note that a value that is outside of the bounds will be clipped to the bounds.
+/// - `lower_bounds` (Option(List(Float)))
+///     A list of lower bounds for the parameters of the model function. If the lower bound is `None`, then the parameter is unbounded from below.
+/// - `upper_bounds` (Option(List(Float)))
+///     A list of upper bounds for the parameters of the model function. If the upper bound is `None`, then the parameter is unbounded from above.
 /// - `opts` (List(LeastSquareOptions))
 ///     A list of optional parameters to control the optimization process.
 ///     The available options are:
@@ -179,6 +184,8 @@ pub fn gauss_newton(
 ///       y,
 ///       parabola,
 ///       initial_guess,
+///       lower_bounds: Some([0.0, 0.0, 0.0]),
+///       upper_bounds: Some([2.0, 2.0, 2.0]),
 ///       opts: [Iterations(1000), Tolerance(0.001)]
 ///     )
 ///
@@ -190,7 +197,17 @@ pub fn trust_region_reflective(
   y: List(Float),
   func: fn(Float, List(Float)) -> Float,
   initial_params: List(Float),
+  lower_bounds lower_bounds: Option(List(Float)),
+  upper_bounds upper_bounds: Option(List(Float)),
   opts opts: List(LeastSquareOptions),
 ) {
-  trr.trust_region_reflective(x, y, func, initial_params, decode_params(opts))
+  trr.trust_region_reflective(
+    x,
+    y,
+    func,
+    initial_params,
+    lower_bounds,
+    upper_bounds,
+    decode_params(opts),
+  )
 }

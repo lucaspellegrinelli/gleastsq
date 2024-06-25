@@ -11,6 +11,12 @@ pub fn tensor(a: List(a)) -> NxTensor
 @external(erlang, "Elixir.Nx", "eye")
 pub fn eye(n: Int) -> NxTensor
 
+@external(erlang, "Elixir.Nx", "min")
+pub fn min(a: NxTensor, b: NxTensor) -> NxTensor
+
+@external(erlang, "Elixir.Nx", "max")
+pub fn max(a: NxTensor, b: NxTensor) -> NxTensor
+
 @external(erlang, "Elixir.Nx", "dot")
 pub fn dot(a: NxTensor, b: NxTensor) -> NxTensor
 

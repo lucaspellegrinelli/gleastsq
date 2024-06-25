@@ -20,9 +20,7 @@ Ideal for non-linear least squares problems, particularly when the initial guess
 
 ## Trust-Region Reflective
 
-Best suited for large-scale problems or those with constraints, this method ensures that each iteration stays within a predefined "trust region," preventing large, unstable steps. It is reliable and effective for challenging optimization problems but can be computationally intensive.
-
-* Constrained parameters is not supported yet.
+Best suited for large-scale problems or those *with constraints*, this method ensures that each iteration stays within a predefined "trust region," preventing large, unstable steps. It is reliable and effective for challenging optimization problems but can be computationally intensive.
 
 ## Gauss-Newton
 

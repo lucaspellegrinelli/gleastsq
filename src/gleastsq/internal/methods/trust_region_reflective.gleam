@@ -1,7 +1,7 @@
 import gleam/bool
 import gleam/float
 import gleam/list
-import gleam/option
+import gleam/option.{type Option}
 import gleam/result
 import gleastsq/errors.{
   type FitErrors, JacobianTaskError, NonConverged, WrongParameters,
@@ -9,6 +9,10 @@ import gleastsq/errors.{
 import gleastsq/internal/jacobian.{jacobian}
 import gleastsq/internal/nx.{type NxTensor}
 import gleastsq/internal/params.{type FitParams}
+
+const float_min = -3.4028235e38
+
+const float_max = 3.4028235e38
 
 /// The `trust_region_reflective` function performs the Trust Region Reflective optimization algorithm.
 /// It is used to solve non-linear least squares problems. This function takes as input the data points,
@@ -23,6 +27,10 @@ import gleastsq/internal/params.{type FitParams}
 ///     The model function that takes an x-value and a list of parameters, and returns the corresponding y-value.
 /// - `initial_params` (List(Float))
 ///     A list of initial guesses for the parameters of the model function.
+/// - `lower_bounds` (List(Float))
+///     A list of lower bounds for the parameters of the model function.
+/// - `upper_bounds` (List(Float))
+///     A list of upper bounds for the parameters of the model function.
 /// - `opts` (FitParams)
 ///     A record with the following fields:
 ///     - `iterations` (Option(Int))
@@ -38,6 +46,8 @@ pub fn trust_region_reflective(
   y: List(Float),
   func: fn(Float, List(Float)) -> Float,
   initial_params: List(Float),
+  lower_bounds: Option(List(Float)),
+  upper_bounds: Option(List(Float)),
   opts opts: FitParams,
 ) -> Result(List(Float), FitErrors) {
   use <- bool.guard(
@@ -45,19 +55,54 @@ pub fn trust_region_reflective(
     Error(WrongParameters("x and y must have the same length")),
   )
 
+  let lower_bounds =
+    option.unwrap(
+      lower_bounds,
+      list.repeat(float_min, list.length(initial_params)),
+    )
+  let upper_bounds =
+    option.unwrap(
+      upper_bounds,
+      list.repeat(float_max, list.length(initial_params)),
+    )
+
+  use <- bool.guard(
+    list.length(initial_params) != list.length(lower_bounds),
+    Error(WrongParameters(
+      "initial_params and lower_bounds must have the same length",
+    )),
+  )
+
+  use <- bool.guard(
+    list.length(initial_params) != list.length(upper_bounds),
+    Error(WrongParameters(
+      "initial_params and upper_bounds must have the same length",
+    )),
+  )
+
   let x = nx.tensor(x) |> nx.to_list_1d
   let y = nx.tensor(y)
+  let lb = nx.tensor(lower_bounds)
+  let ub = nx.tensor(upper_bounds)
   let iter = option.unwrap(opts.iterations, 100)
   let eps = option.unwrap(opts.epsilon, 0.0001)
   let tol = option.unwrap(opts.tolerance, 0.00001)
   let reg = option.unwrap(opts.damping, 0.0001)
   let delta = 1.0
 
+  let p =
+    list.zip(initial_params, lower_bounds)
+    |> list.map(fn(p) { float.max(p.0, p.1) })
+    |> list.zip(upper_bounds)
+    |> list.map(fn(p) { float.min(p.0, p.1) })
+
   use fitted <- result.try(do_trust_region_reflective(
     x,
     y,
     func,
-    initial_params,
+    p,
+    lb,
+    ub,
     iter,
     eps,
     tol,
@@ -96,6 +141,15 @@ fn dogleg(j: NxTensor, g: NxTensor, b: NxTensor, delta: Float) -> NxTensor {
   p_c
 }
 
+fn dogleg_impose_bounds(
+  p: NxTensor,
+  params: NxTensor,
+  lb: NxTensor,
+  ub: NxTensor,
+) -> NxTensor {
+  nx.add(params, p) |> nx.min(ub) |> nx.max(lb) |> nx.subtract(params)
+}
+
 pub fn rho(
   x: List(Float),
   y: NxTensor,
@@ -130,6 +184,8 @@ fn do_trust_region_reflective(
   y: NxTensor,
   func: fn(Float, List(Float)) -> Float,
   params: List(Float),
+  lower_bounds: NxTensor,
+  upper_bounds: NxTensor,
   iterations: Int,
   epsilon: Float,
   tolerance: Float,
@@ -154,7 +210,9 @@ fn do_trust_region_reflective(
   let g_norm = nx.norm(g) |> nx.to_number
   use <- bool.guard(g_norm <. tolerance, Ok(params))
 
-  let p = dogleg(j, g, b, delta)
+  let p =
+    dogleg(j, g, b, delta)
+    |> dogleg_impose_bounds(nx.tensor(params), lower_bounds, upper_bounds)
   let rho = rho(x, y, func, params, p, g)
 
   let p_norm = nx.norm(p) |> nx.to_number
@@ -175,6 +233,8 @@ fn do_trust_region_reflective(
     y,
     func,
     ternary(rho >. 0.0, new_params, params),
+    lower_bounds,
+    upper_bounds,
     iterations - 1,
     epsilon,
     tolerance,
