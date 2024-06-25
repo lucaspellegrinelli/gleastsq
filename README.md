@@ -10,23 +10,31 @@ library from Elixir under the hood to perform matrix operations.
 
 The library provides four functions for curve fitting: `least_squares`, `gauss_newton`, `levenberg_marquardt` and `trust_region_reflective`.
 
-### Least Squares
+## Least Squares
+
+[Docs and examples](https://hexdocs.pm/gleastsq/gleastsq.html#least_squares)
 
 The `least_squares` function is just an alias for the `levenberg_marquardt` function.
 
 ## Levenberg-Marquardt
 
+[Docs and examples](https://hexdocs.pm/gleastsq/gleastsq.html#levenberg_marquardt)
+
 Ideal for non-linear least squares problems, particularly when the initial guess is far from the solution. It combines the benefits of the Gauss-Newton method and gradient descent, making it robust and efficient for various scenarios. However, it requires careful tuning of the damping parameter to balance convergence speed and stability.
 
 ## Trust-Region Reflective
 
-Best suited for large-scale problems or those *with constraints*, this method ensures that each iteration stays within a predefined "trust region," preventing large, unstable steps. It is reliable and effective for challenging optimization problems but can be computationally intensive.
+[Docs and examples](https://hexdocs.pm/gleastsq/gleastsq.html#trust_region_reflective)
+
+Best suited for large-scale problems or those **with constraints (upper and lower bounds for each function parameter)**, this method ensures that each iteration stays within a predefined "trust region," preventing large, unstable steps. It is reliable and effective for challenging optimization problems but can be computationally intensive.
 
 ## Gauss-Newton
 
+[Docs and examples](https://hexdocs.pm/gleastsq/gleastsq.html#gauss_newton)
+
 Efficient for problems where residuals are small and the initial guess is close to the true solution. It approximates the Hessian matrix, leading to faster convergence for well-behaved problems. However, it may struggle with highly non-linear problems or poor initial guesses, as it lacks the robustness of the Levenberg-Marquardt and trust-region reflective methods.
 
-## Installation
+## Installation and Example
 
 ```sh
 gleam add gleastsq
