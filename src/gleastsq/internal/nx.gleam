@@ -1,3 +1,7 @@
+import exception
+import gleam/dynamic
+import gleam/result
+
 pub type NxTensor =
   Nil
 
@@ -53,8 +57,8 @@ pub fn to_list_1d(a: NxTensor) -> List(Float)
 @external(erlang, "Elixir.Nx", "to_number")
 pub fn to_number(a: NxTensor) -> Float
 
-@external(erlang, "Elixir.NxBindings", "safe_solve")
-pub fn solve(a: NxTensor, b: NxTensor) -> Result(NxTensor, String)
+@external(erlang, "Elixir.Nx.LinAlg", "solve")
+pub fn unsafe_solve(a: NxTensor, b: NxTensor) -> NxTensor
 
 @external(erlang, "Elixir.Nx.LinAlg", "norm")
 pub fn norm(a: NxTensor) -> NxTensor
@@ -70,3 +74,15 @@ pub fn divide_mat(a: NxTensor, b: NxTensor) -> NxTensor
 
 @external(erlang, "Elixir.Nx", "concatenate")
 pub fn concatenate(a: List(NxTensor), opts opts: List(NxOpts)) -> NxTensor
+
+pub fn solve(a: NxTensor, b: NxTensor) -> Result(NxTensor, String) {
+  case exception.rescue(fn() { unsafe_solve(a, b) }) {
+    Ok(r) -> Ok(r)
+    Error(e) ->
+      case e {
+        exception.Errored(e) ->
+          Error(result.unwrap(dynamic.string(e), "Error solving matrix"))
+        _ -> panic as "Unexpected error while solving matrix"
+      }
+  }
+}

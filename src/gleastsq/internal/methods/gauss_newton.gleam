@@ -80,7 +80,7 @@ fn do_gauss_newton(
   let jtj = nx.add(nx.dot(jt, j), eye)
   let jt_r = nx.dot(jt, r)
 
-  use delta_solve <- result.try(result.replace_error(
+  use delta_solve <- result.try(result.map_error(
     nx.solve(jtj, jt_r),
     SolveError,
   ))

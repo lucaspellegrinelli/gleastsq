@@ -2,5 +2,5 @@ pub type FitErrors {
   NonConverged
   WrongParameters(String)
   JacobianTaskError
-  SolveError
+  SolveError(String)
 }

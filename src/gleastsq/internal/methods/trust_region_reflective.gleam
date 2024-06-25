@@ -115,7 +115,7 @@ fn dogleg(
   let p_u_denominator = nx.dot(g, nx.dot(jt, jg))
   let p_u = nx.multiply_mat(nx.divide_mat(p_u_numerator, p_u_denominator), g)
 
-  use bg_solve <- result.try(result.replace_error(nx.solve(b, g), SolveError))
+  use bg_solve <- result.try(result.map_error(nx.solve(b, g), SolveError))
   let p_b = nx.negate(bg_solve)
 
   let p_b_norm = nx.norm(p_b) |> nx.to_number

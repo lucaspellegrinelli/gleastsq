@@ -103,7 +103,7 @@ fn do_levenberg_marquardt(
   let h_damped = nx.add(nx.dot(jt, j), lambda_eye)
   let g = nx.dot(jt, r)
 
-  use delta_solve <- result.try(result.replace_error(
+  use delta_solve <- result.try(result.map_error(
     nx.solve(h_damped, g),
     SolveError,
   ))
