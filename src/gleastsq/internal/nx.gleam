@@ -9,6 +9,10 @@ pub type NxOpts {
   Axis(Int)
 }
 
+type NxExceptionKeys {
+  Message
+}
+
 @external(erlang, "Elixir.Nx", "tensor")
 pub fn tensor(a: List(a)) -> NxTensor
 
@@ -80,8 +84,10 @@ pub fn solve(a: NxTensor, b: NxTensor) -> Result(NxTensor, String) {
     Ok(r) -> Ok(r)
     Error(e) ->
       case e {
-        exception.Errored(e) ->
-          Error(result.unwrap(dynamic.string(e), "Error solving matrix"))
+        exception.Errored(e) -> {
+          let error_msg = e |> dynamic.field(named: Message, of: dynamic.string)
+          Error(result.unwrap(error_msg, "Error solving matrix"))
+        }
         _ -> panic as "Unexpected error while solving matrix"
       }
   }
