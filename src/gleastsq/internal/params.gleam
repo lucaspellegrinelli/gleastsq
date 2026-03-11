@@ -1,3 +1,4 @@
+import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleastsq/options.{
   type LeastSquareOptions, Damping, DampingDecrease, DampingIncrease, Epsilon,
@@ -16,9 +17,9 @@ pub type FitParams {
 }
 
 pub fn decode_params(params: List(LeastSquareOptions)) -> FitParams {
-  do_decode_lm_params(
-    params,
-    FitParams(
+  list.fold(
+    over: params,
+    from: FitParams(
       iterations: None,
       epsilon: None,
       tolerance: None,
@@ -26,26 +27,15 @@ pub fn decode_params(params: List(LeastSquareOptions)) -> FitParams {
       damping_increase: None,
       damping_decrease: None,
     ),
+    with: fn(acc, param) {
+      case param {
+        Iterations(i) -> FitParams(..acc, iterations: Some(i))
+        Epsilon(e) -> FitParams(..acc, epsilon: Some(e))
+        Tolerance(t) -> FitParams(..acc, tolerance: Some(t))
+        Damping(d) -> FitParams(..acc, damping: Some(d))
+        DampingIncrease(di) -> FitParams(..acc, damping_increase: Some(di))
+        DampingDecrease(dd) -> FitParams(..acc, damping_decrease: Some(dd))
+      }
+    },
   )
-}
-
-fn do_decode_lm_params(
-  params: List(LeastSquareOptions),
-  acc: FitParams,
-) -> FitParams {
-  case params {
-    [] -> acc
-    [Iterations(i), ..rest] ->
-      do_decode_lm_params(rest, FitParams(..acc, iterations: Some(i)))
-    [Epsilon(e), ..rest] ->
-      do_decode_lm_params(rest, FitParams(..acc, epsilon: Some(e)))
-    [Tolerance(t), ..rest] ->
-      do_decode_lm_params(rest, FitParams(..acc, tolerance: Some(t)))
-    [Damping(d), ..rest] ->
-      do_decode_lm_params(rest, FitParams(..acc, damping: Some(d)))
-    [DampingIncrease(di), ..rest] ->
-      do_decode_lm_params(rest, FitParams(..acc, damping_increase: Some(di)))
-    [DampingDecrease(dd), ..rest] ->
-      do_decode_lm_params(rest, FitParams(..acc, damping_decrease: Some(dd)))
-  }
 }

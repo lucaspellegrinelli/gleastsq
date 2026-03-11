@@ -54,6 +54,10 @@ pub fn trust_region_reflective(
     list.length(x) != list.length(y),
     Error(WrongParameters("x and y must have the same length")),
   )
+  use <- bool.guard(
+    list.is_empty(initial_params),
+    Error(WrongParameters("initial_params must not be empty")),
+  )
 
   let lower_bounds =
     option.unwrap(

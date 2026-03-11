@@ -1,5 +1,6 @@
 import exception
 import gleam/dynamic
+import gleam/dynamic/decode
 import gleam/result
 
 pub type NxTensor =
@@ -89,7 +90,13 @@ pub fn solve(a: NxTensor, b: NxTensor) -> Result(NxTensor, String) {
   use error <- result.map_error(exception.rescue(fn() { unsafe_solve(a, b) }))
   case error {
     exception.Errored(e) -> {
-      let error_msg = e |> dynamic.field(named: Message, of: dynamic.string)
+      let error_msg =
+        e
+        |> decode.run({
+          use message <- decode.field(Message, decode.string)
+          decode.success(message)
+        })
+
       result.unwrap(error_msg, "Error solving matrix")
     }
     _ -> panic as "Unexpected error while solving matrix"

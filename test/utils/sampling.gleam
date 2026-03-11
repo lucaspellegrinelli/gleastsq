@@ -1,7 +1,6 @@
 import gleam/list
-import gleam_community/maths/metrics.{standard_deviation}
+import gleam_community/maths.{standard_deviation}
 import prng/random
-import prng/seed
 import utils/curves.{gaussian}
 
 pub fn sample_around(
@@ -9,7 +8,7 @@ pub fn sample_around(
   f: fn(Float, List(Float)) -> Float,
   params: List(Float),
 ) -> List(Float) {
-  let seed = seed.new(0)
+  let seed = random.new_seed(0)
   let y = list.map(x, f(_, params))
   let assert Ok(ampl) = standard_deviation(y, 0)
   let noise_gen = {
@@ -17,10 +16,11 @@ pub fn sample_around(
     use sign <- random.then(random.choose(-1.0, 1.0))
     random.constant(sign *. gaussian(x, [0.0, 1.0]) *. ampl)
   }
+  let #(noise, _) =
+    random.fixed_size_list(from: noise_gen, of: list.length(x))
+    |> random.step(seed)
 
-  noise_gen
-  |> random.fixed_size_list(list.length(x))
-  |> random.sample(seed)
+  noise
   |> list.zip(y)
   |> list.map(fn(a) { a.0 +. a.1 })
 }

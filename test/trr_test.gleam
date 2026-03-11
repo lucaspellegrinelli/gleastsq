@@ -179,6 +179,10 @@ pub fn should_error_when_x_y_different_sizes_test() {
   trr([0.0], [], parabola, []) |> should.be_error
 }
 
+pub fn should_error_when_initial_params_empty_test() {
+  trr([0.0], [0.0], parabola, []) |> should.be_error
+}
+
 pub fn should_error_when_lower_bound_diff_size_params_test() {
   let x = generate_x_axis(-5, 5, 100)
   let params = [2.0, 0.0, 0.0]

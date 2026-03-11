@@ -1,0 +1,10 @@
+*.gleam text eol=lf
+*.md text eol=lf
+*.toml text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.erl text eol=lf
+*.hrl text eol=lf
+*.app.src text eol=lf
+.gitignore text eol=lf
+LICENSE text eol=lf

@@ -1,4 +1,5 @@
 import gleastsq
+import gleastsq/options.{Iterations}
 import gleeunit/should
 import utils/curves.{
   double_gaussian, exponential, gaussian, parabola, triple_gaussian,
@@ -11,7 +12,7 @@ pub fn lm(
   f: fn(Float, List(Float)) -> Float,
   p: List(Float),
 ) {
-  gleastsq.levenberg_marquardt(x, y, f, p, [])
+  gleastsq.levenberg_marquardt(x, y, f, p, [Iterations(500)])
 }
 
 pub fn perfect_power_of_2_fit_test() {
@@ -93,4 +94,8 @@ pub fn noisy_triple_gaussian_fit_test() {
 
 pub fn should_error_when_x_y_different_sizes_test() {
   lm([0.0], [], parabola, []) |> should.be_error
+}
+
+pub fn should_error_when_initial_params_empty_test() {
+  lm([0.0], [0.0], parabola, []) |> should.be_error
 }

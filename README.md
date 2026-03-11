@@ -6,6 +6,9 @@
 A least squares curve fitting library for Gleam. This library uses the [Nx](https://hexdocs.pm/nx/Nx.html)
 library from Elixir under the hood to perform matrix operations.
 
+`gleastsq` targets Erlang only. Nx is a BEAM dependency, so you will want a
+working Erlang/Elixir toolchain available when developing locally.
+
 ## Which method should I use?
 
 The library provides four functions for curve fitting: `least_squares`, `gauss_newton`, `levenberg_marquardt` and `trust_region_reflective`.

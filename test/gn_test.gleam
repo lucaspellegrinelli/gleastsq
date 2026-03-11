@@ -112,3 +112,7 @@ pub fn noisy_triple_gaussian_fit_test() {
 pub fn should_error_when_x_y_different_sizes_test() {
   gn([0.0], [], parabola, []) |> should.be_error
 }
+
+pub fn should_error_when_initial_params_empty_test() {
+  gn([0.0], [0.0], parabola, []) |> should.be_error
+}

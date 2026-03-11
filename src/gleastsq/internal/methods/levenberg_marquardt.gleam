@@ -2,7 +2,7 @@ import gleam/bool
 import gleam/list
 import gleam/option
 import gleam/result
-import gleam_community/maths/metrics.{norm}
+import gleam_community/maths.{norm}
 import gleastsq/errors.{
   type FitErrors, JacobianTaskError, NonConverged, SolveError, WrongParameters,
 }
@@ -47,6 +47,10 @@ pub fn levenberg_marquardt(
   use <- bool.guard(
     list.length(x) != list.length(y),
     Error(WrongParameters("x and y must have the same length")),
+  )
+  use <- bool.guard(
+    list.is_empty(initial_params),
+    Error(WrongParameters("initial_params must not be empty")),
   )
 
   let x = nx.tensor(x) |> nx.to_list_1d
@@ -108,7 +112,7 @@ fn do_levenberg_marquardt(
     SolveError,
   ))
   let delta = delta_solve |> nx.to_list_1d
-  let delta_norm = norm(delta, 2.0)
+  let assert Ok(delta_norm) = norm(delta, 2.0)
 
   let new_params =
     list.zip(params, delta)

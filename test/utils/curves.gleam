@@ -1,5 +1,5 @@
 import gleam/float
-import gleam_community/maths/elementary
+import gleam_community/maths
 
 const e = 2.718281828459045
 
@@ -7,7 +7,7 @@ const pi = 3.141592653589793
 
 pub fn exponential(x: Float, params: List(Float)) -> Float {
   let assert [a, b, c] = params
-  a *. elementary.exponential(b *. x) +. c
+  a *. maths.exponential(b *. x) +. c
 }
 
 pub fn parabola(x: Float, params: List(Float)) -> Float {

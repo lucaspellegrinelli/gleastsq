@@ -1,8 +1,7 @@
 import gleam/float
 import gleam/int
 import gleam/list
-import gleam_community/maths/metrics.{mean}
-import gleam_community/maths/piecewise
+import gleam_community/maths.{extrema, mean}
 import gleastsq/errors.{type FitErrors}
 import utils/sampling.{sample_around}
 
@@ -16,7 +15,10 @@ pub fn generate_x_axis(from: Int, to: Int, n: Int) -> List(Float) {
   let to = int.to_float(to)
   let range = to -. from
   let factor = n /. range
-  list.range(0, float.truncate(n))
+  int.range(from: 0, to: float.truncate(n) + 1, with: [], run: fn(acc, x) {
+    [x, ..acc]
+  })
+  |> list.reverse
   |> list.map(int.to_float)
   |> list.map(fn(x) { x /. factor +. from })
 }
@@ -45,7 +47,7 @@ pub fn are_fits_equivalent(
   let y_a = list.map(x, func(_, params_a))
   let y_b = list.map(x, func(_, params_b))
 
-  let assert Ok(#(min_y, max_y)) = piecewise.extrema(y_a, float.compare)
+  let assert Ok(#(min_y, max_y)) = extrema(y_a, float.compare)
   let range = max_y -. min_y
 
   let assert Ok(mae) =

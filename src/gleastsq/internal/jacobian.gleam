@@ -1,6 +1,5 @@
+import gleam/int
 import gleam/list
-import gleam/otp/task
-import gleam/result
 import gleastsq/internal/nx.{type NxTensor, Axis}
 
 pub opaque type JacobianError {
@@ -14,20 +13,15 @@ pub fn jacobian(
   params: List(Float),
   epsilon: Float,
 ) {
-  let n = list.length(params)
-  let jac_result =
-    list.range(0, n - 1)
-    |> list.map(fn(i) {
-      task.async(fn() {
-        compute_jacobian_col(x, y_fit, func, params, epsilon, i)
+  case list.length(params) {
+    0 -> Error(JacobianTaskError)
+    n ->
+      int.range(from: 0, to: n, with: [], run: fn(acc, i) {
+        [compute_jacobian_col(x, y_fit, func, params, epsilon, i), ..acc]
       })
-    })
-    |> list.map(task.try_await_forever(_))
-    |> result.all
-
-  case jac_result {
-    Ok(jac_cols) -> Ok(nx.concatenate(jac_cols, opts: [Axis(1)]))
-    Error(_) -> Error(JacobianTaskError)
+      |> list.reverse
+      |> nx.concatenate(opts: [Axis(1)])
+      |> Ok
   }
 }
 
