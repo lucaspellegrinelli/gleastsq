@@ -29,7 +29,7 @@ Ideal for non-linear least squares problems, particularly when the initial guess
 
 [Docs and examples](https://hexdocs.pm/gleastsq/gleastsq.html#trust_region_reflective)
 
-Best suited for large-scale problems or those **with constraints (upper and lower bounds for each function parameter)**, this method ensures that each iteration stays within a predefined "trust region," preventing large, unstable steps. It is reliable and effective for challenging optimization problems but can be computationally intensive.
+Best suited for problems **with constraints (upper and lower bounds for each function parameter)**, this method uses a bounded trust-region style update so each iteration stays within a controlled step size and respects the provided parameter bounds. It can be more stable than a plain Gauss-Newton step on constrained problems, but it is also more computationally intensive.
 
 ## Gauss-Newton
 
@@ -65,3 +65,10 @@ pub fn main() {
 ```
 
 Further documentation can be found at <https://hexdocs.pm/gleastsq>.
+
+## Validation
+
+All fitting functions return `Error(WrongParameters(_))` when `x` and `y` have
+different lengths or when `initial_params` is empty. The
+`trust_region_reflective` function also validates that any bound lists have the
+same length as `initial_params`.

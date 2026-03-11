@@ -30,6 +30,7 @@ pub fn least_squares(
 ///     The model function that takes an x-value and a list of parameters, and returns the corresponding y-value.
 /// - `initial_params` (List(Float))
 ///     A list of initial guesses for the parameters of the model function.
+///     This list must not be empty.
 /// - `opts` (List(LeastSquareOptions))
 ///     A list of optional parameters to control the optimization process.
 ///     The available options are:
@@ -39,6 +40,10 @@ pub fn least_squares(
 ///     - `Damping(Float)`: The initial value of the damping parameter. Default is 0.0001.
 ///     - `DampingIncrease(Float)`: The factor by which the damping parameter is increased when a step fails. Default is 10.0.
 ///     - `DampingDecrease(Float)`: The factor by which the damping parameter is decreased when a step succeeds. Default is 0.1.
+///
+/// # Errors
+/// Returns `Error(WrongParameters(_))` if `x` and `y` have different lengths or
+/// if `initial_params` is empty.
 ///
 /// # Example
 /// ```gleam
@@ -91,6 +96,7 @@ pub fn levenberg_marquardt(
 ///     The model function that takes an x-value and a list of parameters, and returns the corresponding y-value.
 /// - `initial_params` (List(Float))
 ///     A list of initial guesses for the parameters of the model function.
+///     This list must not be empty.
 /// - `opts` (List(LeastSquareOptions))
 ///     A list of optional parameters to control the optimization process.
 ///     The available options are:
@@ -98,6 +104,10 @@ pub fn levenberg_marquardt(
 ///     - `Epsilon(Float)`: A small value to change x when calculating the derivatives for the function. Default is 0.0001.
 ///     - `Tolerance(Float)`: The convergence tolerance. Default is 0.0001.
 ///     - `Damping(Float)`: The value of the damping parameter. Default is 0.001.
+///
+/// # Errors
+/// Returns `Error(WrongParameters(_))` if `x` and `y` have different lengths or
+/// if `initial_params` is empty.
 ///
 /// # Example
 /// ```gleam
@@ -137,9 +147,12 @@ pub fn gauss_newton(
   gn.gauss_newton(x, y, func, initial_params, decode_params(opts))
 }
 
-/// The `trust_region_reflective` function performs a least squares optimization using the Trust Region Reflective algorithm.
-/// It is used to find the best-fit parameters for a given model function to a set of data points.
-/// This function takes as input the data points, the model function, and several optional parameters to control the optimization process.
+/// The `trust_region_reflective` function performs a bounded trust-region least
+/// squares optimization.
+/// It is used to find the best-fit parameters for a given model function to a
+/// set of data points while respecting optional upper and lower bounds.
+/// This function takes as input the data points, the model function, and
+/// several optional parameters to control the optimization process.
 ///
 /// # Parameters
 /// - `x` (List(Float))
@@ -149,7 +162,9 @@ pub fn gauss_newton(
 /// - `func` (fn(Float, List(Float)) -> Float)
 ///     The model function that takes an x-value and a list of parameters, and returns the corresponding y-value.
 /// - `initial_params` (List(Float))
-///     A list of initial guesses for the parameters of the model function. Note that a value that is outside of the bounds will be clipped to the bounds.
+///     A list of initial guesses for the parameters of the model function.
+///     This list must not be empty. Values outside the provided bounds are
+///     clipped to the bounds before optimization begins.
 /// - `lower_bounds` (Option(List(Float)))
 ///     A list of lower bounds for the parameters of the model function. If the lower bound is `None`, then the parameter is unbounded from below.
 /// - `upper_bounds` (Option(List(Float)))
@@ -161,6 +176,11 @@ pub fn gauss_newton(
 ///     - `Epsilon(Float)`: A small value to change x when calculating the derivatives for the function. Default is 0.0001.
 ///     - `Tolerance(Float)`: The convergence tolerance. Default is 0.00001.
 ///     - `Damping(Float)`: The value of the damping parameter. Default is 0.001.
+///
+/// # Errors
+/// Returns `Error(WrongParameters(_))` if `x` and `y` have different lengths,
+/// if `initial_params` is empty, or if the bound lists have different lengths
+/// from `initial_params`.
 ///
 /// # Example
 /// ```gleam
