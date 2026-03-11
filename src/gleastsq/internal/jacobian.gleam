@@ -1,3 +1,5 @@
+import exception
+import gleam/erlang/process
 import gleam/int
 import gleam/list
 import gleastsq/internal/nx.{type NxTensor, Axis}
@@ -49,8 +51,45 @@ fn compute_jacobian_col(
   nx.new_axis(nx.divide(nx.subtract(up_f, y_fit), epsilon), 1)
 }
 
-@external(erlang, "gleastsq_jacobian_ffi", "parallel_map")
 fn parallel_map(
   items: List(a),
   using mapper: fn(a) -> b,
-) -> Result(List(b), Nil)
+) -> Result(List(b), Nil) {
+  let results = process.new_subject()
+
+  items
+  |> list.index_map(fn(item, index) {
+    process.spawn_unlinked(fn() {
+      let result = case exception.rescue(fn() { mapper(item) }) {
+        Ok(value) -> Ok(value)
+        Error(_) -> Error(Nil)
+      }
+
+      process.send(results, #(index, result))
+    })
+  })
+
+  gather_results(results, list.length(items), [])
+}
+
+fn gather_results(
+  results: process.Subject(#(Int, Result(a, Nil))),
+  remaining: Int,
+  acc: List(#(Int, a)),
+) -> Result(List(a), Nil) {
+  case remaining {
+    0 ->
+      acc
+      |> list.sort(fn(left, right) { int.compare(left.0, right.0) })
+      |> list.map(fn(result) { result.1 })
+      |> Ok
+
+    _ ->
+      case process.receive_forever(results) {
+        #(index, Ok(value)) ->
+          gather_results(results, remaining - 1, [#(index, value), ..acc])
+
+        #(_, Error(Nil)) -> Error(Nil)
+      }
+  }
+}
