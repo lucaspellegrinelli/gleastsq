@@ -1,6 +1,9 @@
+import gleam/float
 import gleam/list
 import gleam/option.{None, Some}
 import gleastsq
+import gleastsq/internal/methods/trust_region_reflective as trr_impl
+import gleastsq/internal/nx
 import gleeunit/should
 import utils/curves.{
   double_gaussian, exponential, gaussian, parabola, triple_gaussian,
@@ -14,6 +17,11 @@ pub fn trr(
   p: List(Float),
 ) {
   gleastsq.trust_region_reflective(x, y, f, p, None, None, [])
+}
+
+fn linear(x: Float, params: List(Float)) -> Float {
+  let assert [a] = params
+  a *. x
 }
 
 pub fn perfect_power_of_2_fit_test() {
@@ -181,6 +189,46 @@ pub fn should_error_when_x_y_different_sizes_test() {
 
 pub fn should_error_when_initial_params_empty_test() {
   trr([0.0], [0.0], parabola, []) |> should.be_error
+}
+
+pub fn rho_uses_quadratic_model_test() {
+  let x = [1.0, 2.0]
+  let y = [1.0, 2.0] |> nx.tensor
+  let params = [0.0]
+  let p = [0.5] |> nx.tensor
+  let g = [-5.0] |> nx.tensor
+  let b = [[5.0]] |> nx.tensor
+
+  trr_impl.rho(x, y, linear, params, p, g, b)
+  |> float.loosely_equals(1.0, tolerating: 0.0000001)
+  |> should.equal(True)
+}
+
+pub fn rho_returns_zero_for_zero_predicted_reduction_test() {
+  let x = [1.0]
+  let y = [1.0] |> nx.tensor
+  let params = [0.0]
+  let p = [0.0] |> nx.tensor
+  let g = [0.0] |> nx.tensor
+  let b = [[1.0]] |> nx.tensor
+
+  trr_impl.rho(x, y, linear, params, p, g, b)
+  |> should.equal(0.0)
+}
+
+pub fn fixed_bounds_zero_step_returns_current_params_test() {
+  let x = [1.0, 2.0]
+  let y = [1.0, 2.0]
+  gleastsq.trust_region_reflective(
+    x,
+    y,
+    linear,
+    [0.0],
+    lower_bounds: Some([0.0]),
+    upper_bounds: Some([0.0]),
+    opts: [],
+  )
+  |> should.equal(Ok([0.0]))
 }
 
 pub fn should_error_when_lower_bound_diff_size_params_test() {

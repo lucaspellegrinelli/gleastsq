@@ -1,6 +1,6 @@
 import gleam/bool
 import gleam/list
-import gleam/option
+import gleam/option.{type Option, None, Some}
 import gleam/result
 import gleam_community/maths.{norm}
 import gleastsq/errors.{
@@ -80,6 +80,19 @@ fn ternary(cond: Bool, a: a, b: a) -> a {
   bool.guard(cond, a, fn() { b })
 }
 
+pub fn accepted_small_step(
+  delta_norm: Float,
+  tolerance: Float,
+  improved: Bool,
+  current_params: List(Float),
+  proposed_params: List(Float),
+) -> Option(List(Float)) {
+  case delta_norm <. tolerance {
+    False -> None
+    True -> Some(ternary(improved, proposed_params, current_params))
+  }
+}
+
 fn do_levenberg_marquardt(
   x: List(Float),
   y: NxTensor,
@@ -118,23 +131,25 @@ fn do_levenberg_marquardt(
     list.zip(params, delta)
     |> list.map(fn(p) { p.0 +. p.1 })
 
-  use <- bool.guard(delta_norm <. tolerance, Ok(new_params))
-
   let new_y_fit = list.map(x, func(_, new_params)) |> nx.tensor
   let new_r = nx.subtract(y, new_y_fit)
   let prev_error = nx.sum(nx.pow(r, 2.0)) |> nx.to_number
   let new_error = nx.sum(nx.pow(new_r, 2.0)) |> nx.to_number
   let impr = new_error <. prev_error
-  do_levenberg_marquardt(
-    x,
-    y,
-    func,
-    ternary(impr, new_params, params),
-    iterations - 1,
-    epsilon,
-    tolerance,
-    damping *. ternary(impr, damping_decrease, damping_increase),
-    damping_increase,
-    damping_decrease,
-  )
+  case accepted_small_step(delta_norm, tolerance, impr, params, new_params) {
+    Some(final_params) -> Ok(final_params)
+    None ->
+      do_levenberg_marquardt(
+        x,
+        y,
+        func,
+        ternary(impr, new_params, params),
+        iterations - 1,
+        epsilon,
+        tolerance,
+        damping *. ternary(impr, damping_decrease, damping_increase),
+        damping_increase,
+        damping_decrease,
+      )
+  }
 }

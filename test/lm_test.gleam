@@ -1,4 +1,6 @@
+import gleam/option.{None, Some}
 import gleastsq
+import gleastsq/internal/methods/levenberg_marquardt as lm_impl
 import gleastsq/options.{Iterations}
 import gleeunit/should
 import utils/curves.{
@@ -98,4 +100,19 @@ pub fn should_error_when_x_y_different_sizes_test() {
 
 pub fn should_error_when_initial_params_empty_test() {
   lm([0.0], [0.0], parabola, []) |> should.be_error
+}
+
+pub fn accepted_small_step_keeps_current_params_when_rejected_test() {
+  lm_impl.accepted_small_step(0.0001, 0.001, False, [1.0], [2.0])
+  |> should.equal(Some([1.0]))
+}
+
+pub fn accepted_small_step_returns_proposed_params_when_improving_test() {
+  lm_impl.accepted_small_step(0.0001, 0.001, True, [1.0], [2.0])
+  |> should.equal(Some([2.0]))
+}
+
+pub fn accepted_small_step_returns_none_for_large_steps_test() {
+  lm_impl.accepted_small_step(0.01, 0.001, True, [1.0], [2.0])
+  |> should.equal(None)
 }

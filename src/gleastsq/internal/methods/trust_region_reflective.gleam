@@ -154,6 +154,7 @@ pub fn rho(
   params: List(Float),
   p: NxTensor,
   g: NxTensor,
+  b: NxTensor,
 ) -> Float {
   let fx = list.map(x, func(_, params)) |> nx.tensor
 
@@ -170,10 +171,22 @@ pub fn rho(
     nx.sum(nx.subtract(fx_diff, fxp_diff)) |> nx.to_number
   let actual_reduction = 0.5 *. actual_reduction_sum
 
-  let g_dot_p = nx.dot(g, p) |> nx.to_number
-  let predicted_reduction = -0.5 *. g_dot_p
+  let predicted_reduction = quadratic_predicted_reduction(g, b, p)
+  case float.absolute_value(predicted_reduction) <. 1.0e-12 {
+    True -> 0.0
+    False -> actual_reduction /. predicted_reduction
+  }
+}
 
-  actual_reduction /. predicted_reduction
+pub fn quadratic_predicted_reduction(
+  g: NxTensor,
+  b: NxTensor,
+  p: NxTensor,
+) -> Float {
+  let g_dot_p = nx.dot(g, p) |> nx.to_number
+  let b_p = nx.dot(b, p)
+  let p_b_p = nx.dot(p, b_p) |> nx.to_number
+  0.0 -. { g_dot_p +. 0.5 *. p_b_p }
 }
 
 fn do_trust_region_reflective(
@@ -215,10 +228,9 @@ fn do_trust_region_reflective(
       lower_bounds,
       upper_bounds,
     )
-  let rho = rho(x, y, func, params, p, g)
-
   let p_norm = nx.norm(p) |> nx.to_number
   use <- bool.guard(p_norm <. tolerance, Ok(params))
+  let rho = rho(x, y, func, params, p, g, b)
 
   let new_delta = case rho {
     x if x >. 0.75 -> float.max(delta, 2.0 *. nx.to_number(nx.norm(p)))
