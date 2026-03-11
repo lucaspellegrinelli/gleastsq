@@ -58,3 +58,18 @@ pub fn are_fits_equivalent(
   let nmae = mae /. range
   nmae <. 0.025
 }
+
+pub fn sum_squared_residuals(
+  x: List(Float),
+  y: List(Float),
+  func: fn(Float, List(Float)) -> Float,
+  params: List(Float),
+) -> Float {
+  let y_fit = list.map(x, func(_, params))
+
+  list.zip(y, y_fit)
+  |> list.fold(0.0, fn(acc, pair) {
+    let residual = pair.0 -. pair.1
+    acc +. residual *. residual
+  })
+}

@@ -2,13 +2,17 @@ import gleam/float
 import gleam/list
 import gleam/option.{None, Some}
 import gleastsq
+import gleastsq/errors.{SolveError}
 import gleastsq/internal/methods/trust_region_reflective as trr_impl
 import gleastsq/internal/nx
+import gleastsq/options.{Damping}
 import gleeunit/should
 import utils/curves.{
   double_gaussian, exponential, gaussian, parabola, triple_gaussian,
 }
-import utils/helpers.{are_fits_equivalent, fit_to_curve, generate_x_axis}
+import utils/helpers.{
+  are_fits_equivalent, fit_to_curve, generate_x_axis, sum_squared_residuals,
+}
 
 pub fn trr(
   x: List(Float),
@@ -22,6 +26,25 @@ pub fn trr(
 fn linear(x: Float, params: List(Float)) -> Float {
   let assert [a] = params
   a *. x
+}
+
+fn redundant_constant(_x: Float, params: List(Float)) -> Float {
+  let assert [a, b] = params
+  a +. b
+}
+
+fn params_within_bounds(
+  params: List(Float),
+  lower_bounds: List(Float),
+  upper_bounds: List(Float),
+) -> Bool {
+  list.zip(params, lower_bounds)
+  |> list.zip(upper_bounds)
+  |> list.all(fn(pair) {
+    let #(param_and_lower, upper) = pair
+    let #(param, lower) = param_and_lower
+    param >=. lower && param <=. upper
+  })
 }
 
 pub fn perfect_power_of_2_fit_test() {
@@ -261,4 +284,92 @@ pub fn should_error_when_upper_bound_diff_size_params_test() {
     opts: [],
   )
   |> should.be_error
+}
+
+pub fn successful_fit_reduces_residual_test() {
+  let x = generate_x_axis(0, 5, 100)
+  let params = [0.1, 1.0, 0.0]
+  let y = list.map(x, exponential(_, params))
+  let initial = [1.0, 1.0, 1.0]
+  let initial_residual = sum_squared_residuals(x, y, exponential, initial)
+  let assert Ok(result) =
+    gleastsq.trust_region_reflective(
+      x,
+      y,
+      exponential,
+      initial,
+      lower_bounds: None,
+      upper_bounds: None,
+      opts: [],
+    )
+  let final_residual = sum_squared_residuals(x, y, exponential, result)
+  should.be_true(final_residual <. initial_residual)
+}
+
+pub fn should_return_solve_error_for_rank_deficient_problem_without_damping_test() {
+  let result =
+    gleastsq.trust_region_reflective(
+      [0.0, 1.0],
+      [1.0, 2.0],
+      redundant_constant,
+      [0.0, 0.0],
+      lower_bounds: None,
+      upper_bounds: None,
+      opts: [Damping(0.0)],
+    )
+
+  case result {
+    Error(SolveError(_)) -> should.be_true(True)
+    _ -> should.be_true(False)
+  }
+}
+
+pub fn result_params_stay_within_bounds_test() {
+  let x = generate_x_axis(0, 5, 100)
+  let params = [0.6, 0.8, 0.2]
+  let y = list.map(x, exponential(_, params))
+  let lower_bounds = [0.0, 0.0, -0.5]
+  let upper_bounds = [0.7, 1.0, 0.4]
+  let assert Ok(result) =
+    gleastsq.trust_region_reflective(
+      x,
+      y,
+      exponential,
+      [10.0, -10.0, 5.0],
+      lower_bounds: Some(lower_bounds),
+      upper_bounds: Some(upper_bounds),
+      opts: [],
+    )
+
+  params_within_bounds(result, lower_bounds, upper_bounds)
+  |> should.be_true
+}
+
+pub fn initial_params_are_clipped_to_fixed_bounds_before_optimization_test() {
+  gleastsq.trust_region_reflective(
+    [1.0, 2.0],
+    [1.0, 2.0],
+    linear,
+    [10.0],
+    lower_bounds: Some([2.0]),
+    upper_bounds: Some([2.0]),
+    opts: [],
+  )
+  |> should.equal(Ok([2.0]))
+}
+
+pub fn solution_can_land_on_active_upper_bound_test() {
+  let assert Ok(result) =
+    gleastsq.trust_region_reflective(
+      [1.0, 2.0, 3.0],
+      [3.0, 6.0, 9.0],
+      linear,
+      [0.0],
+      lower_bounds: Some([0.0]),
+      upper_bounds: Some([2.0]),
+      opts: [],
+    )
+
+  result
+  |> should.equal([2.0])
 }

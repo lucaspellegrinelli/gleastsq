@@ -1,12 +1,16 @@
+import gleam/list
 import gleam/option.{None, Some}
 import gleastsq
+import gleastsq/errors.{SolveError}
 import gleastsq/internal/methods/levenberg_marquardt as lm_impl
-import gleastsq/options.{Iterations}
+import gleastsq/options.{Damping, Iterations}
 import gleeunit/should
 import utils/curves.{
   double_gaussian, exponential, gaussian, parabola, triple_gaussian,
 }
-import utils/helpers.{are_fits_equivalent, fit_to_curve, generate_x_axis}
+import utils/helpers.{
+  are_fits_equivalent, fit_to_curve, generate_x_axis, sum_squared_residuals,
+}
 
 pub fn lm(
   x: List(Float),
@@ -14,7 +18,12 @@ pub fn lm(
   f: fn(Float, List(Float)) -> Float,
   p: List(Float),
 ) {
-  gleastsq.levenberg_marquardt(x, y, f, p, [Iterations(500)])
+  gleastsq.levenberg_marquardt(x, y, f, p, [Iterations(250)])
+}
+
+fn redundant_constant(_x: Float, params: List(Float)) -> Float {
+  let assert [a, b] = params
+  a +. b
 }
 
 pub fn perfect_power_of_2_fit_test() {
@@ -115,4 +124,32 @@ pub fn accepted_small_step_returns_proposed_params_when_improving_test() {
 pub fn accepted_small_step_returns_none_for_large_steps_test() {
   lm_impl.accepted_small_step(0.01, 0.001, True, [1.0], [2.0])
   |> should.equal(None)
+}
+
+pub fn successful_fit_reduces_residual_test() {
+  let x = generate_x_axis(0, 5, 100)
+  let params = [0.1, 1.0, 0.0]
+  let y = list.map(x, exponential(_, params))
+  let initial = [1.0, 1.0, 1.0]
+  let initial_residual = sum_squared_residuals(x, y, exponential, initial)
+  let assert Ok(result) =
+    gleastsq.levenberg_marquardt(x, y, exponential, initial, [])
+  let final_residual = sum_squared_residuals(x, y, exponential, result)
+  should.be_true(final_residual <. initial_residual)
+}
+
+pub fn should_return_solve_error_for_rank_deficient_problem_without_damping_test() {
+  let result =
+    gleastsq.levenberg_marquardt(
+      [0.0, 1.0],
+      [1.0, 2.0],
+      redundant_constant,
+      [0.0, 0.0],
+      [Damping(0.0)],
+    )
+
+  case result {
+    Error(SolveError(_)) -> should.be_true(True)
+    _ -> should.be_true(False)
+  }
 }

@@ -1,9 +1,14 @@
+import gleam/list
 import gleastsq
+import gleastsq/errors.{SolveError}
+import gleastsq/options.{Damping}
 import gleeunit/should
 import utils/curves.{
   double_gaussian, exponential, gaussian, parabola, triple_gaussian,
 }
-import utils/helpers.{are_fits_equivalent, fit_to_curve, generate_x_axis}
+import utils/helpers.{
+  are_fits_equivalent, fit_to_curve, generate_x_axis, sum_squared_residuals,
+}
 
 pub fn gn(
   x: List(Float),
@@ -12,6 +17,11 @@ pub fn gn(
   p: List(Float),
 ) {
   gleastsq.gauss_newton(x, y, f, p, [])
+}
+
+fn redundant_constant(_x: Float, params: List(Float)) -> Float {
+  let assert [a, b] = params
+  a +. b
 }
 
 pub fn perfect_power_of_2_fit_test() {
@@ -115,4 +125,31 @@ pub fn should_error_when_x_y_different_sizes_test() {
 
 pub fn should_error_when_initial_params_empty_test() {
   gn([0.0], [0.0], parabola, []) |> should.be_error
+}
+
+pub fn successful_fit_reduces_residual_test() {
+  let x = generate_x_axis(0, 5, 100)
+  let params = [0.1, 1.0, 0.0]
+  let y = list.map(x, exponential(_, params))
+  let initial = [1.0, 1.0, 1.0]
+  let initial_residual = sum_squared_residuals(x, y, exponential, initial)
+  let assert Ok(result) = gleastsq.gauss_newton(x, y, exponential, initial, [])
+  let final_residual = sum_squared_residuals(x, y, exponential, result)
+  should.be_true(final_residual <. initial_residual)
+}
+
+pub fn should_return_solve_error_for_rank_deficient_problem_without_damping_test() {
+  let result =
+    gleastsq.gauss_newton(
+      [0.0, 1.0],
+      [1.0, 2.0],
+      redundant_constant,
+      [0.0, 0.0],
+      [Damping(0.0)],
+    )
+
+  case result {
+    Error(SolveError(_)) -> should.be_true(True)
+    _ -> should.be_true(False)
+  }
 }
